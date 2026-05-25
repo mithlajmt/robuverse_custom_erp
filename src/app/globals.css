@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --color-background: #05070c;
+  --color-foreground: #e8f7ff;
+  --color-muted: #8aa0af;
+  --color-border: rgba(125, 211, 252, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #05070c;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(0, 229, 255, 0.18), transparent 32rem),
+    linear-gradient(135deg, #05070c 0%, #07111a 50%, #07151d 100%);
+  color: #e8f7ff;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

@@ -75,41 +75,41 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Income Card */}
+        {/* Income Card -> Receivables */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-5 relative overflow-hidden group shadow-lg shadow-black/20">
           <div className="hidden md:block absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 group-hover:scale-110 transition-transform duration-300">
             <TrendingUp className="h-28 w-28 text-green-400" />
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Inflow</span>
+            <span className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Receivables</span>
             <div className="p-1.5 md:p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 shrink-0">
               <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
           </div>
           <div className="mt-3 md:mt-4">
             <p className="text-base md:text-2xl font-bold text-slate-100 tracking-tight">
-              {formatCurrency(summary.totalIncome)}
+              {formatCurrency(summary.totalReceivables)}
             </p>
-            <p className="text-[9px] md:text-xs text-slate-500 mt-0.5 md:mt-1">Total revenue</p>
+            <p className="text-[9px] md:text-xs text-slate-500 mt-0.5 md:mt-1">Debtors (Get)</p>
           </div>
         </div>
 
-        {/* Expense Card */}
+        {/* Expense Card -> Payables */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-5 relative overflow-hidden group shadow-lg shadow-black/20">
           <div className="hidden md:block absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-5 group-hover:scale-110 transition-transform duration-300">
             <TrendingDown className="h-28 w-28 text-red-400" />
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Outflow</span>
+            <span className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Payables</span>
             <div className="p-1.5 md:p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 shrink-0">
               <TrendingDown className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
           </div>
           <div className="mt-3 md:mt-4">
             <p className="text-base md:text-2xl font-bold text-slate-100 tracking-tight">
-              {formatCurrency(summary.totalExpense)}
+              {formatCurrency(summary.totalPayables)}
             </p>
-            <p className="text-[9px] md:text-xs text-slate-500 mt-0.5 md:mt-1">Total expenses</p>
+            <p className="text-[9px] md:text-xs text-slate-500 mt-0.5 md:mt-1">Creditors (Give)</p>
           </div>
         </div>
       </div>

@@ -14,28 +14,12 @@ async function main() {
 
   console.log("Database cleaned. Seeding production data...");
 
-  // 2. Seed initial cash balance of ₹7,723
-  const capitalCategory = await prisma.category.upsert({
+  // 2. Seed capital category (no initial transaction seeded)
+  await prisma.category.upsert({
     where: { slug: "capital" },
     update: { name: "Capital Investment", type: "CAPITAL" },
     create: { slug: "capital", name: "Capital Investment", type: "CAPITAL" }
   });
-
-  await prisma.transaction.create({
-    data: {
-      type: "CAPITAL",
-      status: "COMPLETED",
-      cashFlowDirection: "INFLOW",
-      categoryId: capitalCategory.id,
-      amount: 7723,
-      description: "Initial cash balance",
-      transactionDate: new Date(),
-      paymentMethod: "BANK",
-      source: "MANUAL",
-      isSystemGenerated: false
-    }
-  });
-  console.log("Seeded initial balance transaction of ₹7,723.");
 
   // 3. Seed Debt records
   const debtsToSeed = [

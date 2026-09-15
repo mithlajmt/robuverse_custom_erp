@@ -22,9 +22,12 @@ export async function createSupabaseServerClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
           } catch {
-            // Server Components cannot always set cookies; middleware refresh handles active sessions.
+            // Server Components can read cookies but cannot set them.
+            // Middleware and Route Handlers handle session cookie writes.
           }
         }
       }

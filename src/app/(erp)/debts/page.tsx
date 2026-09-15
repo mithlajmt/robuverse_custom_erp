@@ -1,24 +1,28 @@
-import { DebtPaymentForm } from "@/components/debt-payment-form";
-import { PageHeading } from "@/components/page-heading";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPrisma } from "@/lib/prisma";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
+import { CollapsibleDebtForm } from "@/components/collapsible-debt-form";
+import { DebtTable } from "@/components/debt-table";
+import { type SerializedDebt } from "@/components/debt-card";
+import {
+  Layers,
+  TrendingDown,
+  TrendingUp,
+  AlertCircle
+} from "lucide-react";
+import { DebtDirection, DebtStatus, Debt, Transaction } from "@prisma/client";
+
+export const dynamic = "force-dynamic";
+
+type DebtWithTransactions = Debt & {
+  transactions: Transaction[];
+};
 
 export default async function DebtsPage() {
-  let debts: Array<{
-    id: string;
-    personName: string;
-    amount: unknown;
-    paidAmount: unknown;
-    remainingAmount: unknown;
-    direction: string;
-    status: string;
-    transactions: Array<{ id: string; amount: unknown; description: string; transactionDate: Date; cashFlowDirection: string }>;
-  }> = [];
-
+  const prisma = getPrisma();
+  
+  let debts: DebtWithTransactions[] = [];
   try {
-    debts = await getPrisma().debt.findMany({
+    debts = await prisma.debt.findMany({
       include: {
         transactions: {
           where: { isDeleted: false },
@@ -26,100 +30,151 @@ export default async function DebtsPage() {
           take: 5
         }
       },
-      orderBy: [{ status: "asc" }, { personName: "asc" }]
+      orderBy: [
+        { status: "asc" }, // OPEN/PARTIAL first, PAID last
+        { updatedAt: "desc" }
+      ]
     });
-  } catch {
-    debts = [];
+  } catch (error) {
+    console.error("Error fetching debts:", error);
   }
 
-  const totalRemaining = debts.reduce((sum, debt) => sum + Number(String(debt.remainingAmount)), 0);
-  const totalPaid = debts.reduce((sum, debt) => sum + Number(String(debt.paidAmount)), 0);
+  // Serialize Prisma objects to plain JSON-compatible objects
+  const serializedDebts: SerializedDebt[] = debts.map((d) => ({
+    id: d.id,
+    personName: d.personName,
+    direction: d.direction,
+    amount: d.amount.toString(),
+    paidAmount: d.paidAmount.toString(),
+    remainingAmount: d.remainingAmount.toString(),
+    status: d.status,
+    notes: d.notes,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+    transactions: d.transactions.map((tx) => ({
+      id: tx.id,
+      type: tx.type,
+      status: tx.status,
+      cashFlowDirection: tx.cashFlowDirection,
+      amount: tx.amount.toString(),
+      description: tx.description,
+      transactionDate: tx.transactionDate.toISOString(),
+      paymentMethod: tx.paymentMethod,
+      referenceNumber: tx.referenceNumber,
+      notes: tx.notes,
+      createdAt: tx.createdAt.toISOString(),
+      updatedAt: tx.updatedAt.toISOString()
+    }))
+  }));
+
+  // Calculate totals
+  const openAccountsCount = serializedDebts.filter((d) => d.status !== "PAID").length;
+  
+  const totalPayable = serializedDebts
+    .filter((d) => d.direction === "PAYABLE" && d.status !== "PAID")
+    .reduce((sum, d) => sum + Number(d.remainingAmount), 0);
+
+  const totalReceivable = serializedDebts
+    .filter((d) => d.direction === "RECEIVABLE" && d.status !== "PAID")
+    .reduce((sum, d) => sum + Number(d.remainingAmount), 0);
 
   return (
-    <>
-      <PageHeading
-        eyebrow="Debt operations"
-        title="Debts"
-        description="Record partial payments or close debts. Each payment creates a centralized transaction and updates the debt balance."
-      />
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <Metric label="Open Debt Records" value={String(debts.filter((debt) => debt.status !== "PAID").length)} />
-        <Metric label="Total Paid" value={formatCurrency(totalPaid)} />
-        <Metric label="Remaining" value={formatCurrency(totalRemaining)} />
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <p className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">Debts & Credit Operations</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent mt-1">
+          Creditors & Debtors
+        </h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Track outstanding payables and receivables, manage initial/partial payments, and review payment history.
+        </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Debt Register</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {debts.length ? (
-            <div className="grid gap-4">
-              {debts.map((debt) => {
-                const remaining = Number(String(debt.remainingAmount));
-                const original = Number(String(debt.amount));
-                const paid = Number(String(debt.paidAmount));
-                const progress = original > 0 ? Math.min(100, Math.round((paid / original) * 100)) : 0;
 
-                return (
-                  <div key={debt.id} className="rounded-lg border border-cyan-300/10 bg-white/[0.03] p-4">
-                    <div className="grid gap-4 lg:grid-cols-[1fr_520px] lg:items-start">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-cyan-50">{debt.personName}</p>
-                          <Badge>{debt.direction}</Badge>
-                          <Badge>{debt.status}</Badge>
-                        </div>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                          <DebtValue label="Original" value={original} />
-                          <DebtValue label="Paid" value={paid} />
-                          <DebtValue label="Remaining" value={remaining} />
-                        </div>
-                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
-                          <div className="h-full bg-cyan-300" style={{ width: `${progress}%` }} />
-                        </div>
-                        {debt.transactions.length ? (
-                          <div className="mt-4 grid gap-2">
-                            <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Recent payments</p>
-                            {debt.transactions.map((transaction) => (
-                              <div key={transaction.id} className="flex justify-between gap-3 text-xs text-slate-400">
-                                <span>{formatDate(transaction.transactionDate)} · {transaction.description}</span>
-                                <span className="font-mono text-cyan-100">{formatCurrency(String(transaction.amount))}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                      <DebtPaymentForm debtId={debt.id} remainingAmount={String(debt.remainingAmount)} disabled={remaining <= 0 || debt.status === "PAID"} />
-                    </div>
-                  </div>
-                );
-              })}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-2.5 md:gap-5">
+        {/* Open Accounts Count */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 relative overflow-hidden shadow-lg shadow-black/20">
+          <div className="flex items-center justify-between">
+            {/* Responsive Label */}
+            <span className="hidden sm:inline text-xs font-semibold text-slate-400 uppercase tracking-wider">Open Accounts</span>
+            <span className="sm:hidden text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Open</span>
+            <div className="p-1.5 md:p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+              <Layers className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
+          </div>
+          <div className="mt-2.5 md:mt-4">
+            <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-100 tracking-tight">
+              {openAccountsCount}
+            </p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Active ledger files</p>
+            <p className="sm:hidden text-[8px] text-slate-500 mt-0.5">Active files</p>
+          </div>
+        </div>
+
+        {/* Total Receivables (Get Money) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 relative overflow-hidden shadow-lg shadow-black/20">
+          <div className="flex items-center justify-between">
+            {/* Responsive Label */}
+            <span className="hidden sm:inline text-xs font-semibold text-slate-400 uppercase tracking-wider">Receivables (Get)</span>
+            <span className="sm:hidden text-[9px] font-semibold text-slate-400 uppercase tracking-wider">To Get</span>
+            <div className="p-1.5 md:p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 shrink-0">
+              <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 md:mt-4">
+            <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-100 tracking-tight">
+              {formatCurrency(totalReceivable)}
+            </p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">To collect</p>
+            <p className="sm:hidden text-[8px] text-slate-500 mt-0.5">Receivable</p>
+          </div>
+        </div>
+
+        {/* Total Payables (Give Money) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 relative overflow-hidden shadow-lg shadow-black/20">
+          <div className="flex items-center justify-between">
+            {/* Responsive Label */}
+            <span className="hidden sm:inline text-xs font-semibold text-slate-400 uppercase tracking-wider">Payables (Give)</span>
+            <span className="sm:hidden text-[9px] font-semibold text-slate-400 uppercase tracking-wider">To Give</span>
+            <div className="p-1.5 md:p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 shrink-0">
+              <TrendingDown className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            </div>
+          </div>
+          <div className="mt-2.5 md:mt-4">
+            <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-100 tracking-tight">
+              {formatCurrency(totalPayable)}
+            </p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Owed to others</p>
+            <p className="sm:hidden text-[8px] text-slate-500 mt-0.5">Owed</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+        {/* Debts Register List */}
+        <div className="xl:col-span-2 flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-slate-100">Accounts Register</h2>
+
+          {serializedDebts.length > 0 ? (
+            <DebtTable debts={serializedDebts} />
           ) : (
-            <p className="text-sm text-slate-400">Import the workbook to seed debt balances.</p>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-5 shadow-lg h-64 flex flex-col items-center justify-center text-center">
+              <AlertCircle className="h-10 w-10 text-slate-700 mb-2" />
+              <p className="text-sm font-medium text-slate-400">No active accounts found.</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Use the &ldquo;Create New Account&rdquo; panel to log new payables or receivables.
+              </p>
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </>
-  );
-}
+        </div>
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent>
-        <p className="text-sm text-slate-400">{label}</p>
-        <p className="mt-2 text-2xl font-semibold text-cyan-100">{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DebtValue({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 font-mono text-sm font-semibold text-cyan-100">{formatCurrency(value)}</p>
+        {/* Add Debt Record Collapsible Sidebar Panel */}
+        <div className="xl:col-span-1">
+          <CollapsibleDebtForm />
+        </div>
+      </div>
     </div>
   );
 }

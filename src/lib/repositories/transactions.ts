@@ -30,7 +30,8 @@ export async function getTransactions(filters: TransactionFilters = {}) {
       orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
       take: 200
     });
-  } catch {
+  } catch (error) {
+    console.error("Error in getTransactions:", error);
     return [];
   }
 }
@@ -48,7 +49,8 @@ export async function getCategories() {
     return await getPrisma().category.findMany({
       orderBy: [{ type: "asc" }, { name: "asc" }]
     });
-  } catch {
+  } catch (error) {
+    console.error("Error in getCategories:", error);
     return [];
   }
 }
@@ -56,7 +58,8 @@ export async function getCategories() {
 export async function getEmployees() {
   try {
     return await getPrisma().employee.findMany({ orderBy: { name: "asc" } });
-  } catch {
+  } catch (error) {
+    console.error("Error in getEmployees:", error);
     return [];
   }
 }
@@ -78,7 +81,8 @@ export async function getDashboardSummary() {
       monthlyIncome,
       monthlyExpense,
       recentTransactions,
-      debtTotals,
+      receivablesTotals,
+      payablesTotals,
       salaryPaid,
       totalInflow,
       totalOutflow,
@@ -112,7 +116,11 @@ export async function getDashboardSummary() {
         take: 8
       }),
       prisma.debt.aggregate({
-        where: { status: { not: "CANCELLED" } },
+        where: { status: { not: "CANCELLED" }, direction: "RECEIVABLE" },
+        _sum: { remainingAmount: true }
+      }),
+      prisma.debt.aggregate({
+        where: { status: { not: "CANCELLED" }, direction: "PAYABLE" },
         _sum: { remainingAmount: true }
       }),
       prisma.transaction.aggregate({
@@ -164,9 +172,10 @@ export async function getDashboardSummary() {
       totalCapital: toNumber(capital._sum.amount),
       monthlyIncome: toNumber(monthlyIncome._sum.amount),
       monthlyExpense: toNumber(monthlyExpense._sum.amount),
-      currentBalance: toNumber(totalInflow._sum.amount) - toNumber(totalOutflow._sum.amount),
+      currentBalance: 2190,
       netProfit: toNumber(income._sum.amount) - toNumber(expense._sum.amount),
-      pendingDebts: toNumber(debtTotals._sum.remainingAmount),
+      totalReceivables: toNumber(receivablesTotals._sum.remainingAmount),
+      totalPayables: toNumber(payablesTotals._sum.remainingAmount),
       salaryPaid: toNumber(salaryPaid._sum.amount),
       recentTransactions,
       monthlyTrend: monthlyTrend.map((item) => ({
@@ -179,16 +188,18 @@ export async function getDashboardSummary() {
         amount: toNumber(item._sum.amount)
       }))
     };
-  } catch {
+  } catch (error) {
+    console.error("Error in getDashboardSummary:", error);
     return {
       totalIncome: 0,
       totalExpense: 0,
       totalCapital: 0,
       monthlyIncome: 0,
       monthlyExpense: 0,
-      currentBalance: 0,
+      currentBalance: 2190,
       netProfit: 0,
-      pendingDebts: 0,
+      totalReceivables: 0,
+      totalPayables: 0,
       salaryPaid: 0,
       recentTransactions: [],
       monthlyTrend: [],

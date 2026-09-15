@@ -56,7 +56,7 @@ export async function createTransaction(
     });
 
     revalidateFinancialRoutes();
-    return { ok: true, message: "Transaction created." };
+    return { ok: true, message: "Transaction created successfully." };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Unable to create transaction." };
   }
@@ -88,7 +88,7 @@ export async function updateTransaction(
     });
 
     revalidateFinancialRoutes();
-    return { ok: true, message: "Transaction updated." };
+    return { ok: true, message: "Transaction updated successfully." };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Unable to update transaction." };
   }

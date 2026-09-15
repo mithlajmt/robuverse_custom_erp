@@ -1,33 +1,712 @@
+/* ==========================================================
+   ROBUVERSE ERP / CRM / HRMS DESIGN SYSTEM
+   Version: 1.0
+   Author: MITHLAJ MATTA | ROBUVERSE
+   ========================================================== */
+
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
-  --color-background: #05070c;
-  --color-foreground: #e8f7ff;
-  --color-muted: #8aa0af;
-  --color-border: rgba(125, 211, 252, 0.16);
+/* ==========================================================
+   BRAND TOKENS
+   Change values here and entire software updates
+   ========================================================== */
+
+:root {
+
+  /* =========================
+     PRIMARY BRAND COLORS
+  ========================= */
+
+  --robo-primary: #06b6d4;
+  --robo-primary-light: #22d3ee;
+
+  --robo-secondary: #7c3aed;
+
+  /* =========================
+     STATUS COLORS
+  ========================= */
+
+  --robo-success: #10b981;
+  --robo-warning: #f59e0b;
+  --robo-danger: #ef4444;
+
+  /* =========================
+     SURFACE COLORS
+  ========================= */
+
+  --robo-bg: #020617;
+
+  --robo-surface: #0f172a;
+
+  --robo-surface-2: #111827;
+
+  --robo-surface-3: #1e293b;
+
+  /* =========================
+     TEXT
+  ========================= */
+
+  --robo-text: #f8fafc;
+
+  --robo-text-muted: #94a3b8;
+
+  /* =========================
+     BORDERS
+  ========================= */
+
+  --robo-border:
+    rgba(255, 255, 255, .08);
+
+  --robo-border-hover:
+    rgba(6, 182, 212, .25);
+
+  /* =========================
+     SHADOWS
+  ========================= */
+
+  --robo-shadow-sm:
+    0 4px 12px rgba(0, 0, 0, .2);
+
+  --robo-shadow-md:
+    0 8px 24px rgba(0, 0, 0, .3);
+
+  --robo-shadow-lg:
+    0 12px 40px rgba(0, 0, 0, .4);
+
+  --robo-glow:
+    0 0 30px rgba(6, 182, 212, .25);
+
+  /* =========================
+     BORDER RADIUS
+  ========================= */
+
+  --robo-radius-sm: 12px;
+
+  --robo-radius-md: 18px;
+
+  --robo-radius-lg: 24px;
+
+  --robo-radius-xl: 32px;
+}
+
+/* ==========================================================
+   BASE STYLES
+   ========================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--robo-bg);
+  color: var(--robo-text);
+
+  font-family: var(--font-geist-sans);
+
+  overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html {
-  background: #05070c;
+/* ==========================================================
+   CUSTOM SCROLLBAR
+   ========================================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-body {
-  min-height: 100vh;
+::-webkit-scrollbar-track {
+  background: var(--robo-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--robo-primary);
+  border-radius: 999px;
+}
+
+/* ==========================================================
+   LAYOUT
+   ========================================================== */
+
+.robo-container {
+  width: 100%;
+  max-width: 1600px;
+
+  margin-inline: auto;
+
+  padding-inline: 24px;
+}
+
+.robo-section {
+  padding-block: 80px;
+}
+
+/* ==========================================================
+   TYPOGRAPHY
+   ========================================================== */
+
+.robo-heading {
+  font-family: var(--font-bebas);
+
+  text-transform: uppercase;
+
+  letter-spacing: 2px;
+}
+
+.robo-title-xl {
+  font-size: clamp(3rem, 7vw, 6rem);
+
+  line-height: 1;
+}
+
+.robo-title-lg {
+  font-size: clamp(2rem, 5vw, 4rem);
+
+  line-height: 1;
+}
+
+.robo-title-md {
+  font-size: 2rem;
+
+  line-height: 1.2;
+}
+
+.robo-title-sm {
+  font-size: 1.25rem;
+}
+
+.robo-subtitle {
+  color: var(--robo-primary);
+
+  text-transform: uppercase;
+
+  letter-spacing: 3px;
+}
+
+.robo-muted {
+  color: var(--robo-text-muted);
+}
+
+.robo-text-glow {
+  text-shadow:
+    0 0 20px rgba(6, 182, 212, .5);
+}
+
+/* ==========================================================
+   GLASS EFFECT
+   ========================================================== */
+
+.robo-glass {
+
   background:
-    radial-gradient(circle at top left, rgba(0, 229, 255, 0.18), transparent 32rem),
-    linear-gradient(135deg, #05070c 0%, #07111a 50%, #07151d 100%);
-  color: #e8f7ff;
+    rgba(15, 23, 42, .65);
+
+  backdrop-filter:
+    blur(16px);
+
+  border:
+    1px solid rgba(255, 255, 255, .08);
+
+  border-radius:
+    var(--robo-radius-lg);
+
+  box-shadow:
+    var(--robo-shadow-md);
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* ==========================================================
+   CARDS
+   ========================================================== */
+
+.robo-card {
+
+  background:
+    var(--robo-surface);
+
+  border:
+    1px solid var(--robo-border);
+
+  border-radius:
+    var(--robo-radius-md);
+
+  padding:
+    24px;
+
+  transition:
+    all .3s ease;
+}
+
+.robo-card:hover {
+
+  border-color:
+    var(--robo-border-hover);
+
+  transform:
+    translateY(-3px);
+}
+
+/* ==========================================================
+   STAT CARDS
+   ========================================================== */
+
+.robo-stat-card {
+
+  background:
+    var(--robo-surface);
+
+  border:
+    1px solid var(--robo-border);
+
+  border-radius:
+    20px;
+
+  padding:
+    24px;
+
+  transition:
+    .3s;
+}
+
+.robo-stat-card:hover {
+  box-shadow:
+    var(--robo-glow);
+}
+
+.robo-stat-value {
+
+  font-size:
+    2rem;
+
+  font-weight:
+    700;
+}
+
+.robo-stat-label {
+
+  color:
+    var(--robo-text-muted);
+
+  margin-top:
+    6px;
+}
+
+/* ==========================================================
+   BUTTONS
+   ========================================================== */
+
+.robo-btn-primary {
+
+  background:
+    linear-gradient(135deg,
+      var(--robo-primary),
+      var(--robo-primary-light));
+
+  color:
+    white;
+
+  padding:
+    12px 24px;
+
+  border-radius:
+    14px;
+
+  font-weight:
+    600;
+
+  transition:
+    .3s;
+
+  cursor:
+    pointer;
+}
+
+.robo-btn-primary:hover {
+
+  transform:
+    translateY(-2px);
+
+  box-shadow:
+    var(--robo-glow);
+}
+
+.robo-btn-secondary {
+
+  background:
+    var(--robo-secondary);
+
+  color:
+    white;
+
+  padding:
+    12px 24px;
+
+  border-radius:
+    14px;
+
+  cursor:
+    pointer;
+}
+
+.robo-btn-outline {
+
+  border:
+    1px solid var(--robo-primary);
+
+  color:
+    var(--robo-primary);
+
+  background:
+    transparent;
+
+  padding:
+    12px 24px;
+
+  border-radius:
+    14px;
+
+  cursor:
+    pointer;
+}
+
+/* ==========================================================
+   INPUTS
+   ========================================================== */
+
+.robo-input {
+
+  width:
+    100%;
+
+  background:
+    var(--robo-surface);
+
+  border:
+    1px solid var(--robo-border);
+
+  color:
+    white;
+
+  border-radius:
+    14px;
+
+  padding:
+    14px 16px;
+
+  transition:
+    .3s;
+}
+
+.robo-input:focus {
+
+  outline:
+    none;
+
+  border-color:
+    var(--robo-primary);
+
+  box-shadow:
+    0 0 0 4px rgba(6, 182, 212, .15);
+}
+
+.robo-label {
+
+  display:
+    block;
+
+  margin-bottom:
+    8px;
+
+  font-size:
+    .9rem;
+
+  color:
+    var(--robo-text-muted);
+}
+
+/* ==========================================================
+   TABLES
+   ========================================================== */
+
+.robo-table {
+
+  width:
+    100%;
+
+  border-collapse:
+    collapse;
+}
+
+.robo-table th {
+
+  background:
+    var(--robo-surface-2);
+
+  color:
+    var(--robo-primary);
+
+  text-align:
+    left;
+
+  padding:
+    16px;
+}
+
+.robo-table td {
+
+  padding:
+    16px;
+
+  border-top:
+    1px solid var(--robo-border);
+}
+
+.robo-table tr:hover {
+
+  background:
+    rgba(255, 255, 255, .02);
+}
+
+/* ==========================================================
+   SIDEBAR
+   ========================================================== */
+
+.robo-sidebar {
+
+  width:
+    260px;
+
+  background:
+    var(--robo-surface);
+
+  border-right:
+    1px solid var(--robo-border);
+}
+
+.robo-sidebar-link {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    12px;
+
+  padding:
+    12px 18px;
+
+  border-radius:
+    12px;
+
+  transition:
+    .3s;
+}
+
+.robo-sidebar-link:hover {
+
+  background:
+    rgba(6, 182, 212, .08);
+}
+
+.robo-sidebar-link.active {
+
+  background:
+    rgba(6, 182, 212, .15);
+
+  color:
+    var(--robo-primary);
+}
+
+/* ==========================================================
+   TOPBAR
+   ========================================================== */
+
+.robo-topbar {
+
+  background:
+    rgba(2, 6, 23, .8);
+
+  backdrop-filter:
+    blur(12px);
+
+  border-bottom:
+    1px solid var(--robo-border);
+}
+
+/* ==========================================================
+   BADGES
+   ========================================================== */
+
+.robo-badge {
+
+  padding:
+    6px 12px;
+
+  border-radius:
+    999px;
+
+  font-size:
+    12px;
+
+  font-weight:
+    600;
+}
+
+.robo-badge-success {
+
+  color:
+    var(--robo-success);
+
+  background:
+    rgba(16, 185, 129, .15);
+}
+
+.robo-badge-warning {
+
+  color:
+    var(--robo-warning);
+
+  background:
+    rgba(245, 158, 11, .15);
+}
+
+.robo-badge-danger {
+
+  color:
+    var(--robo-danger);
+
+  background:
+    rgba(239, 68, 68, .15);
+}
+
+.robo-badge-info {
+
+  color:
+    var(--robo-primary);
+
+  background:
+    rgba(6, 182, 212, .15);
+}
+
+/* ==========================================================
+   MODALS
+   ========================================================== */
+
+.robo-modal {
+
+  background:
+    var(--robo-surface);
+
+  border:
+    1px solid var(--robo-border);
+
+  border-radius:
+    24px;
+
+  padding:
+    32px;
+
+  box-shadow:
+    var(--robo-shadow-lg);
+}
+
+/* ==========================================================
+   DASHBOARD BACKGROUND
+   ========================================================== */
+
+.robo-dashboard-bg {
+
+  min-height:
+    100vh;
+
+  background:
+
+    radial-gradient(circle at top,
+      rgba(6, 182, 212, .08),
+      transparent 40%),
+
+    var(--robo-bg);
+}
+
+/* ==========================================================
+   ANIMATIONS
+   ========================================================== */
+
+.robo-hover-lift {
+  transition: .3s ease;
+}
+
+.robo-hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.robo-glow {
+  box-shadow: var(--robo-glow);
+}
+
+/* ==========================================================
+   KPI COLORS
+   ========================================================== */
+
+.robo-success {
+  color: var(--robo-success);
+}
+
+.robo-warning {
+  color: var(--robo-warning);
+}
+
+.robo-danger {
+  color: var(--robo-danger);
+}
+
+.robo-primary {
+  color: var(--robo-primary);
+}
+
+/* ==========================================================
+   DASHBOARD GRID
+   ========================================================== */
+
+.robo-dashboard-grid {
+
+  display:
+    grid;
+
+  gap:
+    24px;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.robo-auth-bg {
+  background:
+    radial-gradient(circle at top,
+      rgba(6, 182, 212, .12),
+      transparent 40%),
+    radial-gradient(circle at bottom right,
+      rgba(124, 58, 237, .12),
+      transparent 40%),
+    var(--robo-bg);
+}
+
+.robo-auth-card {
+  max-width: 480px;
+}
+
+.robo-auth-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+
+  background:
+    rgba(6, 182, 212, .08);
+
+  border:
+    1px solid rgba(6, 182, 212, .2);
 }

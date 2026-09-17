@@ -800,8 +800,8 @@ export function LeadDetailWorkspace({ initialLead }: LeadDetailWorkspaceProps) {
 
       {/* Edit Lead Details Modal */}
       {isEditingLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200/90 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200/90 rounded-t-3xl sm:rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 bg-slate-50/70">
               <div className="flex items-center gap-3">
@@ -1055,6 +1055,44 @@ export function LeadDetailWorkspace({ initialLead }: LeadDetailWorkspaceProps) {
           </div>
         </div>
       )}
+
+      {/* Sticky Mobile Floating Quick-Action Bar */}
+      <div className="md:hidden fixed bottom-14 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 p-2 z-40 flex items-center justify-around gap-1.5 shadow-2xl">
+        {cleanPhone && (
+          <a
+            href={`https://wa.me/${cleanPhone.replace("+", "")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-600 active:bg-emerald-700 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow-sm transition active:scale-95"
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>WhatsApp</span>
+          </a>
+        )}
+        {activeLead.phone && (
+          <a
+            href={`tel:${activeLead.phone}`}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-blue-600 active:bg-blue-700 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow-sm transition active:scale-95"
+          >
+            <Phone className="h-4 w-4" />
+            <span>Call</span>
+          </a>
+        )}
+        <button
+          onClick={() => setIsEditingLead(true)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 active:bg-slate-800 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow-sm transition active:scale-95 cursor-pointer"
+        >
+          <Pencil className="h-4 w-4 text-indigo-400" />
+          <span>Edit</span>
+        </button>
+        <Link
+          href={`/documents?leadId=${activeLead.id}&leadNumber=${activeLead.leadNumber}&recipientName=${encodeURIComponent(activeLead.name || "")}&recipientOrg=${encodeURIComponent(activeLead.company || "")}`}
+          className="inline-flex items-center justify-center p-2.5 bg-indigo-600 active:bg-indigo-700 text-white font-extrabold rounded-xl shadow-sm transition active:scale-95"
+          title="Raise Quotation"
+        >
+          <FileText className="h-4 w-4" />
+        </Link>
+      </div>
     </div>
   );
 }

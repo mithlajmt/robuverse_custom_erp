@@ -189,11 +189,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 lg:h-full lg:overflow-hidden bg-slate-50">
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
+      <main className="flex-1 flex flex-col min-w-0 lg:h-full lg:overflow-hidden bg-slate-50 pb-20 lg:pb-0">
+        <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Native Navigation Bar */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-1 py-1.5 flex items-center justify-around shadow-lg">
+        {navigationItems.filter((i) => !i.disabled).map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
+                isActive ? "text-indigo-600 font-extrabold" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <div className={`p-1 rounded-xl ${isActive ? "bg-indigo-50" : ""}`}>
+                <Icon className={`h-5 w-5 ${isActive ? "text-indigo-600 stroke-[2.5]" : "text-slate-500"}`} />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5">{item.label.split(" ")[0]}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

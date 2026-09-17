@@ -10,7 +10,10 @@ import {
   Menu,
   X,
   Zap,
-  Clock
+  Clock,
+  GraduationCap,
+  FileText,
+  FileSignature
 } from "lucide-react";
 import { logoutUser } from "@/lib/actions/auth";
 
@@ -24,6 +27,9 @@ type NavItem = {
 const navigationItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: CircleDollarSign },
+  { href: "/certificates", label: "Certificates", icon: GraduationCap },
+  { href: "/documents", label: "Document Studio", icon: FileText },
+  { href: "/letterhead", label: "Letterhead & Quotes", icon: FileSignature },
   { href: "/salary", label: "Salaries", icon: Zap, disabled: true },
   { href: "/debts", label: "Debts", icon: Clock }
 ];

@@ -67,65 +67,46 @@ export async function getEmployees() {
 export async function getDashboardSummary() {
   try {
     const prisma = getPrisma();
-    const baseWhere = {
-      isDeleted: false,
-      status: "COMPLETED" as TransactionStatus
-    };
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [
-      income,
-      expense,
-      capital,
-      monthlyIncome,
-      monthlyExpense,
-      recentTransactions,
-      receivablesTotals,
-      payablesTotals,
-      salaryPaid,
-      totalInflow,
-      totalOutflow,
-      monthlyTrend,
-      categorySpend
-    ] = await Promise.all([
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, type: "INCOME" },
-        _sum: { amount: true }
-      }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, type: "EXPENSE" },
-        _sum: { amount: true }
-      }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, type: "CAPITAL" },
-        _sum: { amount: true }
-      }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, cashFlowDirection: "INFLOW", transactionDate: { gte: monthStart } },
-        _sum: { amount: true }
-      }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, cashFlowDirection: "OUTFLOW", transactionDate: { gte: monthStart } },
-        _sum: { amount: true }
-      }),
-      prisma.transaction.findMany({
-        where: { isDeleted: false },
-        include: { category: true },
-        orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
-        take: 8
-      }),
-      prisma.debt.aggregate({
-        where: { status: { not: "CANCELLED" }, direction: "RECEIVABLE" },
-        _sum: { remainingAmount: true }
-      }),
-      prisma.debt.aggregate({
-        where: { status: { not: "CANCELLED" }, direction: "PAYABLE" },
-        _sum: { remainingAmount: true }
-      }),
+    // Optimized consolidated queries to prevent database connection pool exhaustion
+    const [stats, debtStats, salaryStats, recentTransactions, monthlyTrend, categorySpend] = await Promise.all([
+      // 1. Transaction aggregations by Type & Cashflow
+      prisma.$queryRaw<Array<{
+        type: TransactionType;
+        direction: string;
+        total: Prisma.Decimal;
+        monthlyTotal: Prisma.Decimal;
+      }>>`
+        SELECT 
+          type,
+          "cashFlowDirection" as direction,
+          COALESCE(SUM(amount), 0) as total,
+          COALESCE(SUM(CASE WHEN "transactionDate" >= ${monthStart} THEN amount ELSE 0 END), 0) as "monthlyTotal"
+        FROM "Transaction"
+        WHERE "isDeleted" = false AND status = 'COMPLETED'
+        GROUP BY type, "cashFlowDirection"
+      `,
+
+      // 2. Debt aggregations by Direction
+      prisma.$queryRaw<Array<{
+        direction: string;
+        totalRemaining: Prisma.Decimal;
+      }>>`
+        SELECT 
+          direction,
+          COALESCE(SUM("remainingAmount"), 0) as "totalRemaining"
+        FROM "Debt"
+        WHERE status != 'CANCELLED'
+        GROUP BY direction
+      `,
+
+      // 3. Salary expense total
       prisma.transaction.aggregate({
         where: {
-          ...baseWhere,
+          isDeleted: false,
+          status: "COMPLETED",
           type: "EXPENSE",
           OR: [
             { category: { slug: "salary" } },
@@ -134,52 +115,95 @@ export async function getDashboardSummary() {
         },
         _sum: { amount: true }
       }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, cashFlowDirection: "INFLOW" },
-        _sum: { amount: true }
+
+      // 4. Recent transactions
+      prisma.transaction.findMany({
+        where: { isDeleted: false },
+        include: { category: true },
+        orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
+        take: 8
       }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, cashFlowDirection: "OUTFLOW" },
-        _sum: { amount: true }
-      }),
+
+      // 5. Monthly trend
       prisma.$queryRaw<Array<{ month: Date; income: Prisma.Decimal; expense: Prisma.Decimal }>>`
         SELECT
           date_trunc('month', "transactionDate") as month,
-          SUM(CASE WHEN "cashFlowDirection" = 'INFLOW' THEN amount ELSE 0 END) as income,
-          SUM(CASE WHEN "cashFlowDirection" = 'OUTFLOW' THEN amount ELSE 0 END) as expense
+          COALESCE(SUM(CASE WHEN "cashFlowDirection" = 'INFLOW' THEN amount ELSE 0 END), 0) as income,
+          COALESCE(SUM(CASE WHEN "cashFlowDirection" = 'OUTFLOW' THEN amount ELSE 0 END), 0) as expense
         FROM "Transaction"
         WHERE "isDeleted" = false AND status = 'COMPLETED'
         GROUP BY 1
         ORDER BY 1 ASC
       `,
+
+      // 6. Spend by category
       prisma.transaction.groupBy({
         by: ["categoryId"],
-        where: { ...baseWhere, type: "EXPENSE" },
+        where: { isDeleted: false, status: "COMPLETED", type: "EXPENSE" },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
         take: 6
       })
     ]);
 
-    const categories = await prisma.category.findMany({
-      where: { id: { in: categorySpend.map((item) => item.categoryId) } }
-    });
-    const categoryById = new Map(categories.map((category) => [category.id, category]));
+    // Parse aggregated stat rows
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let totalCapital = 0;
+    let monthlyIncome = 0;
+    let monthlyExpense = 0;
+
+    for (const row of stats) {
+      const val = toNumber(row.total);
+      const mVal = toNumber(row.monthlyTotal);
+
+      if (row.direction === "INFLOW") {
+        totalIncome += val;
+        monthlyIncome += mVal;
+      } else if (row.direction === "OUTFLOW") {
+        totalExpense += val;
+        monthlyExpense += mVal;
+      }
+
+      if (row.type === "CAPITAL") {
+        totalCapital += val;
+      }
+    }
+
+    let totalReceivables = 0;
+    let totalPayables = 0;
+    for (const d of debtStats) {
+      if (d.direction === "RECEIVABLE") {
+        totalReceivables += toNumber(d.totalRemaining);
+      } else if (d.direction === "PAYABLE") {
+        totalPayables += toNumber(d.totalRemaining);
+      }
+    }
+
+    // Category names lookup
+    const categories = categorySpend.length > 0
+      ? await prisma.category.findMany({
+          where: { id: { in: categorySpend.map((item) => item.categoryId) } }
+        })
+      : [];
+    const categoryById = new Map(categories.map((c) => [c.id, c]));
+
+    const currentBalance = totalCapital + totalIncome - totalExpense;
 
     return {
-      totalIncome: toNumber(totalInflow._sum.amount),
-      totalExpense: toNumber(totalOutflow._sum.amount),
-      totalCapital: toNumber(capital._sum.amount),
-      monthlyIncome: toNumber(monthlyIncome._sum.amount),
-      monthlyExpense: toNumber(monthlyExpense._sum.amount),
-      currentBalance: 2190,
-      netProfit: toNumber(income._sum.amount) - toNumber(expense._sum.amount),
-      totalReceivables: toNumber(receivablesTotals._sum.remainingAmount),
-      totalPayables: toNumber(payablesTotals._sum.remainingAmount),
-      salaryPaid: toNumber(salaryPaid._sum.amount),
+      totalIncome,
+      totalExpense,
+      totalCapital,
+      monthlyIncome,
+      monthlyExpense,
+      currentBalance,
+      netProfit: totalIncome - totalExpense,
+      totalReceivables,
+      totalPayables,
+      salaryPaid: toNumber(salaryStats._sum.amount),
       recentTransactions,
       monthlyTrend: monthlyTrend.map((item) => ({
-        month: item.month.toISOString().slice(0, 7),
+        month: item.month ? item.month.toISOString().slice(0, 7) : "",
         income: toNumber(item.income),
         expense: toNumber(item.expense)
       })),
@@ -196,7 +220,7 @@ export async function getDashboardSummary() {
       totalCapital: 0,
       monthlyIncome: 0,
       monthlyExpense: 0,
-      currentBalance: 2190,
+      currentBalance: 0,
       netProfit: 0,
       totalReceivables: 0,
       totalPayables: 0,

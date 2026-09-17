@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const protectedRoutes = ["/dashboard", "/transactions", "/salary", "/debts"];
+const protectedRoutes = ["/dashboard", "/transactions", "/salary", "/debts", "/certificates", "/documents", "/letterhead"];
 
 export async function middleware(request: NextRequest) {
   const hasConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

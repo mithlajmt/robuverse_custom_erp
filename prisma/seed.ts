@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient, TransactionType } from "@prisma/client";
 
 const prisma = new PrismaClient();

@@ -6,10 +6,15 @@ export const prisma = globalForPrisma.prisma || new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-export function getPrisma() {
+export function getPrisma(): PrismaClient {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  return prisma;
+  // Handle hot-reloading when new schema models like `lead` are added in dev mode
+  if (process.env.NODE_ENV !== "production" && !(globalForPrisma.prisma as any)?.lead) {
+    globalForPrisma.prisma = new PrismaClient();
+  }
+
+  return globalForPrisma.prisma || new PrismaClient();
 }

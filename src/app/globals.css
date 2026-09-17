@@ -23,10 +23,10 @@
      PRIMARY BRAND COLORS
   ========================= */
 
-  --robo-primary: #06b6d4;
-  --robo-primary-light: #22d3ee;
+  --robo-primary: #4f46e5;
+  --robo-primary-light: #6366f1;
 
-  --robo-secondary: #7c3aed;
+  --robo-secondary: #0284c7;
 
   /* =========================
      STATUS COLORS
@@ -37,50 +37,44 @@
   --robo-danger: #ef4444;
 
   /* =========================
-     SURFACE COLORS
+     SURFACE COLORS (LIGHT MODE)
   ========================= */
 
-  --robo-bg: #020617;
+  --robo-bg: #f8fafc;
 
-  --robo-surface: #0f172a;
+  --robo-surface: #ffffff;
 
-  --robo-surface-2: #111827;
+  --robo-surface-2: #f1f5f9;
 
-  --robo-surface-3: #1e293b;
+  --robo-surface-3: #e2e8f0;
 
   /* =========================
      TEXT
   ========================= */
 
-  --robo-text: #f8fafc;
+  --robo-text: #0f172a;
 
-  --robo-text-muted: #94a3b8;
+  --robo-text-muted: #64748b;
 
   /* =========================
      BORDERS
   ========================= */
 
-  --robo-border:
-    rgba(255, 255, 255, .08);
+  --robo-border: #e2e8f0;
 
-  --robo-border-hover:
-    rgba(6, 182, 212, .25);
+  --robo-border-hover: #cbd5e1;
 
   /* =========================
      SHADOWS
   ========================= */
 
-  --robo-shadow-sm:
-    0 4px 12px rgba(0, 0, 0, .2);
+  --robo-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
-  --robo-shadow-md:
-    0 8px 24px rgba(0, 0, 0, .3);
+  --robo-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 
-  --robo-shadow-lg:
-    0 12px 40px rgba(0, 0, 0, .4);
+  --robo-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
-  --robo-glow:
-    0 0 30px rgba(6, 182, 212, .25);
+  --robo-glow: 0 0 20px rgba(79, 70, 229, 0.15);
 
   /* =========================
      BORDER RADIUS
@@ -744,6 +738,12 @@ body {
     box-shadow: none !important;
     border: none !important;
     background: #ffffff !important;
+  }
+
+  #a4-document-print-target tr,
+  #a4-document-print-target section {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   @page {

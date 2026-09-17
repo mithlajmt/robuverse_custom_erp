@@ -35,16 +35,16 @@ export function AddDebtForm() {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-      <div className="flex items-center gap-2 mb-4">
-        <PlusCircle className="h-5 w-5 text-cyan-400" />
-        <h2 className="text-lg font-semibold text-slate-100">Add Account</h2>
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+        <PlusCircle className="h-5 w-5 text-indigo-600" />
+        <h2 className="text-base font-extrabold text-slate-900">Add Account</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Person Name */}
         <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Person / Organization Name
           </label>
           <input
@@ -54,23 +54,23 @@ export function AddDebtForm() {
             value={personName}
             onChange={(e) => setPersonName(e.target.value)}
             placeholder="e.g. Supplier XYZ, John Doe"
-            className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+            className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-xl py-2.5 px-3.5 text-xs font-medium focus:outline-none transition"
           />
         </div>
 
         {/* Direction Toggle (Receivable vs. Payable) */}
         <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
             Account Type
           </label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setDirection("RECEIVABLE")}
-              className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all duration-200 ${
+              className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                 direction === "RECEIVABLE"
-                  ? "bg-green-500/10 border-green-500 text-green-400 shadow-md shadow-green-500/5"
-                  : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
               }`}
             >
               Debtor (Get Money)
@@ -78,10 +78,10 @@ export function AddDebtForm() {
             <button
               type="button"
               onClick={() => setDirection("PAYABLE")}
-              className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all duration-200 ${
+              className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                 direction === "PAYABLE"
-                  ? "bg-purple-500/10 border-purple-500 text-purple-400 shadow-md shadow-purple-500/5"
-                  : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
               }`}
             >
               Creditor (Give Money)
@@ -90,9 +90,9 @@ export function AddDebtForm() {
         </div>
 
         {/* Original Amount & Already Paid Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
               Total Amount
             </label>
             <input
@@ -104,12 +104,12 @@ export function AddDebtForm() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 100000"
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none transition"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-              Already Paid (Optional)
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+              Already Paid
             </label>
             <input
               type="number"
@@ -119,14 +119,14 @@ export function AddDebtForm() {
               value={paidAmount}
               onChange={(e) => setPaidAmount(e.target.value)}
               placeholder="e.g. 40000"
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none transition"
             />
           </div>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Notes / Description (Optional)
           </label>
           <input
@@ -135,17 +135,17 @@ export function AddDebtForm() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Reason for debt, terms..."
-            className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+            className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-xl py-2.5 px-3.5 text-xs font-medium focus:outline-none transition"
           />
         </div>
 
         {/* Status Message */}
         {state?.message && (
           <div
-            className={`p-3 rounded-lg text-xs font-medium border ${
+            className={`p-3 rounded-xl text-xs font-bold border ${
               state.ok
-                ? "bg-green-500/10 border-green-500/20 text-green-400"
-                : "bg-red-500/10 border-red-500/20 text-red-400"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-rose-50 border-rose-200 text-rose-800"
             }`}
           >
             {state.message}
@@ -156,7 +156,7 @@ export function AddDebtForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-900 hover:scale-[1.01] active:scale-[0.99] transition-all font-semibold text-sm py-2.5 shadow-md shadow-cyan-500/10"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs py-3 shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-50"
         >
           {isPending ? (
             <>

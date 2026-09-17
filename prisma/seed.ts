@@ -30,18 +30,28 @@ async function main() {
     });
   }
 
-  const adminEmail = process.env.DEFAULT_ADMIN_EMAIL;
-  if (adminEmail) {
-    await prisma.profile.upsert({
-      where: { email: adminEmail },
-      update: { role: "admin" },
-      create: {
-        id: "seed-admin",
-        email: adminEmail,
-        fullName: "Robuverse Admin",
-        role: "admin"
-      }
-    });
+  const adminEmails = [
+    { email: "mithlajmatta@gmail.com", name: "Mithlaj Matta" },
+    { email: "nihal1abs@gmail.com", name: "Nihal Labs" }
+  ];
+
+  for (const admin of adminEmails) {
+    const existing = await prisma.profile.findUnique({ where: { email: admin.email } });
+    if (existing) {
+      await prisma.profile.update({
+        where: { email: admin.email },
+        data: { role: "admin", fullName: admin.name }
+      });
+    } else {
+      await prisma.profile.create({
+        data: {
+          id: admin.email,
+          email: admin.email,
+          fullName: admin.name,
+          role: "admin"
+        }
+      });
+    }
   }
 }
 

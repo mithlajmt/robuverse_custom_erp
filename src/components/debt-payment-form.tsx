@@ -38,14 +38,14 @@ export function DebtPaymentForm({ debtId, remainingAmount, disabled = false }: D
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-slate-950/40 border border-slate-800/80 p-4 rounded-xl space-y-4"
+      className="bg-slate-50 border border-slate-200/80 p-4 rounded-xl space-y-4"
     >
       <input type="hidden" name="debtId" value={debtId} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Amount */}
         <div>
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Amount (INR)
           </label>
           <input
@@ -57,13 +57,13 @@ export function DebtPaymentForm({ debtId, remainingAmount, disabled = false }: D
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             disabled={disabled || isPending}
-            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-2.5 text-xs focus:outline-none transition disabled:opacity-50"
+            className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-lg py-2 px-2.5 text-xs font-semibold focus:outline-none transition disabled:opacity-50"
           />
         </div>
 
         {/* Date */}
         <div>
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Payment Date
           </label>
           <input
@@ -73,20 +73,20 @@ export function DebtPaymentForm({ debtId, remainingAmount, disabled = false }: D
             value={transactionDate}
             onChange={(e) => setTransactionDate(e.target.value)}
             disabled={disabled || isPending}
-            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-2.5 text-xs focus:outline-none transition disabled:opacity-50"
+            className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-lg py-2 px-2.5 text-xs font-semibold focus:outline-none transition disabled:opacity-50"
           />
         </div>
 
         {/* Payment Method */}
         <div>
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Method
           </label>
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
             disabled={disabled || isPending}
-            className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-2 text-xs focus:outline-none transition disabled:opacity-50"
+            className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-slate-900 rounded-lg py-2 px-2 text-xs font-semibold focus:outline-none transition disabled:opacity-50"
           >
             <option value="UPI">UPI</option>
             <option value="BANK">Bank</option>
@@ -98,12 +98,12 @@ export function DebtPaymentForm({ debtId, remainingAmount, disabled = false }: D
       </div>
 
       {/* Button & Feedback */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-slate-800/30">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-200/80">
         <div className="min-w-0">
           {state?.message && (
             <p
-              className={`text-xs font-semibold truncate ${
-                state.ok ? "text-green-400" : "text-red-400"
+              className={`text-xs font-bold truncate ${
+                state.ok ? "text-emerald-700" : "text-rose-600"
               }`}
             >
               {state.message}
@@ -114,7 +114,7 @@ export function DebtPaymentForm({ debtId, remainingAmount, disabled = false }: D
         <button
           type="submit"
           disabled={disabled || isPending}
-          className="flex items-center justify-center gap-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/20 hover:border-cyan-500 py-1.5 px-4 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 text-xs font-extrabold shadow-md shadow-indigo-500/20 transition disabled:opacity-50 cursor-pointer shrink-0"
         >
           {isPending ? (
             <>

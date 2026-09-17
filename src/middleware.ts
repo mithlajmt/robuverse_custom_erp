@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const protectedRoutes = ["/dashboard", "/transactions", "/salary", "/debts", "/certificates", "/documents", "/letterhead"];
+const publicRoutes = ["/login", "/api/auth/login"];
 
 export async function middleware(request: NextRequest) {
   const hasConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -39,9 +39,13 @@ export async function middleware(request: NextRequest) {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route));
+  const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname.startsWith(route));
 
-  if (isProtectedRoute && !user) {
+  // Protect all non-public routes by default
+  if (!isPublicRoute && !user) {
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

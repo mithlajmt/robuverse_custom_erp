@@ -69,14 +69,101 @@ enum DebtStatus {
 }
 
 model Profile {
-  id           String        @id
-  email        String        @unique
-  fullName     String?
-  role         String        @default("member")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  createdItems Transaction[] @relation("TransactionCreatedBy")
-  updatedItems Transaction[] @relation("TransactionUpdatedBy")
+  id               String         @id
+  email            String         @unique
+  fullName         String?
+  role             String         @default("member")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  createdItems     Transaction[]  @relation("TransactionCreatedBy")
+  updatedItems     Transaction[]  @relation("TransactionUpdatedBy")
+  assignedLeads    Lead[]         @relation("LeadAssignedTo")
+  createdLeads     Lead[]         @relation("LeadCreatedBy")
+  createdFollowUps LeadFollowUp[]
+}
+
+enum LeadStatus {
+  NEW_ENQUIRY
+  CONTACTED
+  REQUIREMENT_GATHERED
+  QUOTATION_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum LeadPriority {
+  HOT
+  WARM
+  COLD
+}
+
+enum LeadSource {
+  WEBSITE
+  WHATSAPP
+  INSTAGRAM
+  PHONE
+  EMAIL
+  EXHIBITION
+  REFERRAL
+  OTHER
+}
+
+enum FollowUpType {
+  CALL
+  MEETING
+  EMAIL
+  WHATSAPP
+  NOTE
+}
+
+model Lead {
+  id               String         @id @default(cuid())
+  leadNumber       String         @unique
+  name             String?        @default("Inquiry")
+  company          String?
+  email            String?
+  phone            String?
+  source           LeadSource     @default(WEBSITE)
+  status           LeadStatus     @default(NEW_ENQUIRY)
+  priority         LeadPriority   @default(WARM)
+  estimatedValue   Decimal        @default(0) @db.Decimal(14, 2)
+  enquiryDate      DateTime       @default(now())
+  nextFollowUpDate DateTime?
+  notes            String?
+  category         String?        @default("GENERAL")
+  venueType        String?
+  eventDate        DateTime?
+  eventLocation    String?
+  assignedToId     String?
+  assignedTo       Profile?       @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  followUps        LeadFollowUp[]
+  linkedDocs       String[]       @default([])
+  createdById      String?
+  createdBy        Profile?       @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([leadNumber])
+  @@index([enquiryDate])
+}
+
+model LeadFollowUp {
+  id             String       @id @default(cuid())
+  leadId         String
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date           DateTime     @default(now())
+  type           FollowUpType @default(NOTE)
+  summary        String
+  nextActionDate DateTime?
+  createdById    String?
+  createdBy      Profile?     @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@index([leadId])
+  @@index([date])
 }
 
 model Category {

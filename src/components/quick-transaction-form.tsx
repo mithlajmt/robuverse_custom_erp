@@ -65,16 +65,16 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
-        <PlusCircle className="h-5 w-5 text-cyan-400" />
-        <h2 className="text-lg font-semibold text-slate-100">Quick Record</h2>
+        <PlusCircle className="h-5 w-5 text-indigo-600" />
+        <h2 className="text-base font-bold text-slate-900">Quick Record</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Transaction Type Buttons */}
         <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
             Transaction Type
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -83,14 +83,14 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
                 key={t}
                 type="button"
                 onClick={() => handleTypeChange(t)}
-                className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all duration-200 ${
+                className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all duration-200 ${
                   type === t
                     ? t === "CAPITAL"
-                      ? "bg-purple-500/10 border-purple-500 text-purple-400 shadow-md shadow-purple-500/5"
+                      ? "bg-purple-50 border-purple-200 text-purple-700 shadow-xs"
                       : t === "INCOME"
-                      ? "bg-green-500/10 border-green-500 text-green-400 shadow-md shadow-green-500/5"
-                      : "bg-red-500/10 border-red-500 text-red-400 shadow-md shadow-red-500/5"
-                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-xs"
+                      : "bg-rose-50 border-rose-200 text-rose-700 shadow-xs"
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
                 {t === "CAPITAL" ? "Capital" : t === "INCOME" ? "Income" : "Expense"}
@@ -102,7 +102,7 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
         {/* Amount & Date Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Amount (INR)
             </label>
             <input
@@ -114,11 +114,11 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 50000"
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Date
             </label>
             <input
@@ -126,7 +126,7 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
               name="transactionDate"
               required
               defaultValue={new Date().toISOString().split("T")[0]}
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
             />
           </div>
         </div>
@@ -134,13 +134,13 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
         {/* Category & Payment Method Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Category
             </label>
             <select
               value={selectedCategoryId}
               onChange={(e) => setSelectedCategoryId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
             >
               {filteredCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -153,13 +153,13 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Payment Method
             </label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
             >
               <option value="UPI">UPI</option>
               <option value="BANK">Bank Transfer</option>
@@ -172,7 +172,7 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
 
         {/* Description */}
         <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
             Description
           </label>
           <input
@@ -182,14 +182,14 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What is this transaction for?"
-            className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+            className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
           />
         </div>
 
         {/* Collapsible reference and notes details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Ref Number (Optional)
             </label>
             <input
@@ -198,11 +198,11 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
               placeholder="e.g. TXN10283921"
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Notes (Optional)
             </label>
             <input
@@ -211,7 +211,7 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Internal remarks"
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 text-slate-100 rounded-lg py-2 px-3 text-sm focus:outline-none transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 rounded-xl py-2 px-3 text-xs font-semibold focus:outline-none transition"
             />
           </div>
         </div>
@@ -219,10 +219,10 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
         {/* Status Message */}
         {state?.message && (
           <div
-            className={`p-3 rounded-lg text-xs font-medium border ${
+            className={`p-3 rounded-xl text-xs font-semibold border ${
               state.ok
-                ? "bg-green-500/10 border-green-500/20 text-green-400"
-                : "bg-red-500/10 border-red-500/20 text-red-400"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-rose-50 border-rose-200 text-rose-700"
             }`}
           >
             {state.message}
@@ -233,7 +233,7 @@ export function QuickTransactionForm({ categories }: QuickTransactionFormProps) 
         <button
           type="submit"
           disabled={isPending || filteredCategories.length === 0}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-900 hover:scale-[1.01] active:scale-[0.99] transition-all font-semibold text-sm py-2.5 shadow-md shadow-cyan-500/10"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-3 shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
         >
           {isPending ? (
             <>

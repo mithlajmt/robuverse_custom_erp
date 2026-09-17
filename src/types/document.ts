@@ -89,6 +89,8 @@ export interface BusinessDocument {
   dueDate?: string;
   refNo?: string;
   piReference?: string;
+  leadId?: string;
+  leadNumber?: string;
   
   // Client details
   recipientName: string;

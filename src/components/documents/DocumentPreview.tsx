@@ -78,26 +78,26 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
   return (
     <div className="flex flex-col items-center w-full space-y-3">
       {/* Zoom & Download Toolbar */}
-      <div className="flex items-center justify-between w-full max-w-[210mm] bg-slate-900/90 backdrop-blur p-2.5 rounded-xl border border-slate-800 text-xs shadow-lg no-print">
+      <div className="flex items-center justify-between w-full max-w-[210mm] bg-white/90 backdrop-blur p-2.5 rounded-xl border border-slate-200/80 text-xs shadow-sm no-print">
         <div className="flex items-center space-x-2">
-          <span className="font-mono font-bold text-cyan-400">{doc.docNumber}</span>
-          <span className="text-slate-600">|</span>
-          <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <span className="font-mono font-bold text-indigo-700">{doc.docNumber}</span>
+          <span className="text-slate-300">|</span>
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80">
             <button
               type="button"
               onClick={() => setCurrentScale((prev) => Math.max(0.4, prev - 0.1))}
-              className="px-2 py-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 font-bold"
+              className="px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 hover:bg-slate-200 font-bold cursor-pointer"
               title="Zoom Out"
             >
               -
             </button>
-            <span className="text-[10px] font-mono text-slate-300 w-12 text-center">
+            <span className="text-[10px] font-mono text-slate-700 w-12 text-center font-bold">
               {Math.round(currentScale * 100)}%
             </span>
             <button
               type="button"
               onClick={() => setCurrentScale((prev) => Math.min(1.2, prev + 0.1))}
-              className="px-2 py-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 font-bold"
+              className="px-2 py-0.5 rounded text-slate-600 hover:text-slate-900 hover:bg-slate-200 font-bold cursor-pointer"
               title="Zoom In"
             >
               +
@@ -105,7 +105,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
             <button
               type="button"
               onClick={() => setCurrentScale(initialScale)}
-              className="px-2 py-0.5 rounded text-[10px] text-slate-400 hover:text-white hover:bg-slate-800"
+              className="px-2 py-0.5 rounded text-[10px] text-slate-600 hover:text-slate-900 hover:bg-slate-200 font-bold cursor-pointer"
             >
               Fit
             </button>
@@ -116,9 +116,9 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
           <button
             type="button"
             onClick={handlePrint}
-            className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold px-3.5 py-1.5 rounded-lg shadow transition-all text-xs"
+            className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-800 font-bold px-3.5 py-1.5 rounded-lg transition-all text-xs cursor-pointer"
           >
-            <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             <span>Print / Save Vector PDF</span>
@@ -128,7 +128,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
             type="button"
             onClick={handleDownloadPDF}
             disabled={isGeneratingPDF}
-            className="flex items-center space-x-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold px-4 py-1.5 rounded-lg shadow-lg transition-all text-xs"
+            className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-lg shadow-md shadow-indigo-500/20 transition-all text-xs cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -139,7 +139,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
       </div>
 
       {/* A4 Paper Canvas Container */}
-      <div className="w-full flex justify-center overflow-x-auto p-1 max-h-[780px] overflow-y-auto rounded-2xl bg-slate-950 border border-slate-800/80 p-4 shadow-inner">
+      <div className="w-full flex justify-center overflow-x-auto p-1 max-h-[780px] overflow-y-auto rounded-2xl bg-slate-100/70 border border-slate-200/80 p-4 shadow-inner">
         <div
           style={{ transform: `scale(${currentScale})`, transformOrigin: "top center" }}
           className="transition-transform duration-200"

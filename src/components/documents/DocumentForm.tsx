@@ -6,7 +6,7 @@ import { DocumentStorageService, calculateDocumentTotals } from "@/lib/storage/d
 import { formatCurrency } from "@/lib/utils/currency";
 
 interface DocumentFormProps {
-  initialDocument?: BusinessDocument;
+  initialDocument?: Partial<BusinessDocument>;
   settings: CompanySettings;
   onSaveSuccess: (doc: BusinessDocument) => void;
   onPreviewUpdate: (doc: BusinessDocument) => void;
@@ -17,24 +17,24 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
   const [products, setProducts] = useState<Product[]>([]);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Default Document State
   const [doc, setDoc] = useState<BusinessDocument>(() => {
-    if (initialDocument) return initialDocument;
-    const defaultType: DocType = "PROFORMA";
-    const refNum = DocumentStorageService.getNextDocNumber(defaultType);
-    return {
-      id: "",
+    const defaultType: DocType = (initialDocument?.docType as DocType) || "PROFORMA";
+    const refNum = initialDocument?.docNumber || DocumentStorageService.getNextDocNumber(defaultType);
+    const baseDoc: BusinessDocument = {
+      id: initialDocument?.id || "",
       docType: defaultType,
-      docSubtitle: "PROFORMA INVOICE FOR PAYMENT ADVANCE",
+      docSubtitle: initialDocument?.docSubtitle || "PROFORMA INVOICE FOR PAYMENT ADVANCE",
       docNumber: refNum,
-      date: new Date().toISOString().split("T")[0],
-      dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
-      refNo: refNum,
-      recipientName: "",
-      recipientOrg: "CONFEDERATION OF RENEWABLE ENERGY",
-      recipientAddress: "1st Floor, Building No. 5/211, City Palace Building\nKalamassery, Ernakulam, Kerala - 683104",
-      recipientGstin: "32AAEAC6254D1Z7",
-      subject: "Proforma Invoice for Robotics Showcase & Demonstration",
+      date: initialDocument?.date || new Date().toISOString().split("T")[0],
+      dueDate: initialDocument?.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
+      refNo: initialDocument?.refNo || refNum,
+      leadId: initialDocument?.leadId,
+      leadNumber: initialDocument?.leadNumber,
+      recipientName: initialDocument?.recipientName || "",
+      recipientOrg: initialDocument?.recipientOrg || "CONFEDERATION OF RENEWABLE ENERGY",
+      recipientAddress: initialDocument?.recipientAddress || "1st Floor, Building No. 5/211, City Palace Building\nKalamassery, Ernakulam, Kerala - 683104",
+      recipientGstin: initialDocument?.recipientGstin || "32AAEAC6254D1Z7",
+      subject: initialDocument?.subject || "Proforma Invoice for Robotics Showcase & Demonstration",
       bodyText: "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.",
       items: [
         {
@@ -68,12 +68,12 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
       showSignature: true,
       showWatermark: true,
       showRecipientSection: true,
-      logoSize: "md",
       bankAccountId: settings.bankAccounts[0]?.id || "bank_federal_nihal",
       status: "ISSUED",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    return baseDoc;
   });
 
   useEffect(() => {
@@ -260,7 +260,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
   return (
     <form onSubmit={handleSave} className="space-y-6">
       {/* Step Indicator Tabs */}
-      <div className="grid grid-cols-4 gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 backdrop-blur">
+      <div className="grid grid-cols-4 gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs">
         {[
           { step: 1, label: "1. Type & Ref", icon: "📑" },
           { step: 2, label: "2. Client & Org", icon: "🏢" },
@@ -271,10 +271,10 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             key={s.step}
             type="button"
             onClick={() => setActiveStep(s.step as any)}
-            className={`flex items-center justify-center space-x-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center space-x-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeStep === s.step
-                ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
             }`}
           >
             <span>{s.icon}</span>
@@ -285,9 +285,9 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
       {/* STEP 1: Document Type & Reference Details */}
       {activeStep === 1 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5 animate-fade-in">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-5 animate-fade-in">
           <div>
-            <h3 className="text-sm font-extrabold text-white mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
               <span>📑</span> Select Document Type
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -301,14 +301,14 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                   key={t.type}
                   type="button"
                   onClick={() => handleDocTypeChange(t.type as DocType)}
-                  className={`p-3.5 rounded-xl border text-left transition-all relative overflow-hidden ${
+                  className={`p-3.5 rounded-xl border text-left transition-all relative overflow-hidden cursor-pointer ${
                     doc.docType === t.type
-                      ? "bg-cyan-950/60 border-cyan-500 text-white ring-2 ring-cyan-500/30"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      ? "bg-indigo-50 border-indigo-600 text-indigo-900 ring-2 ring-indigo-500/20 shadow-xs"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
                   }`}
                 >
-                  <div className="font-bold text-xs text-white">{t.label}</div>
-                  <div className="text-[10px] text-slate-400 mt-1">{t.desc}</div>
+                  <div className="font-extrabold text-xs text-slate-900">{t.label}</div>
+                  <div className="text-[10px] text-slate-500 mt-1 font-medium">{t.desc}</div>
                 </button>
               ))}
             </div>
@@ -316,65 +316,65 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Doc Ref Number *</label>
+              <label className="block text-slate-500 mb-1 font-bold">Doc Ref Number *</label>
               <input
                 type="text"
                 required
                 value={doc.docNumber}
                 onChange={(e) => setDoc({ ...doc, docNumber: e.target.value, refNo: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-cyan-400 font-bold focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-indigo-700 font-extrabold focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Issue Date *</label>
+              <label className="block text-slate-500 mb-1 font-bold">Issue Date *</label>
               <input
                 type="date"
                 required
                 value={doc.date}
                 onChange={(e) => setDoc({ ...doc, date: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Valid Until / Due Date</label>
+              <label className="block text-slate-500 mb-1 font-bold">Valid Until / Due Date</label>
               <input
                 type="date"
                 value={doc.dueDate || ""}
                 onChange={(e) => setDoc({ ...doc, dueDate: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
           <div className="text-xs">
-            <label className="block text-slate-400 mb-1 font-semibold">Document Subtitle / Banner Text</label>
+            <label className="block text-slate-600 mb-1 font-bold">Document Subtitle / Banner Text</label>
             <input
               type="text"
               placeholder="e.g. 50% ADVANCE PAYMENT - ROBOTICS EXPO SHOWCASE"
               value={doc.docSubtitle || ""}
               onChange={(e) => setDoc({ ...doc, docSubtitle: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-medium focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           {/* Dynamic Advance Payment % Tool for Proforma Invoices */}
           {doc.docType === "PROFORMA" && (
-            <div className="p-3.5 bg-gradient-to-r from-cyan-950/60 via-slate-900 to-indigo-950/60 border border-cyan-800/50 rounded-xl text-xs space-y-3">
+            <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-3 shadow-2xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 font-bold text-cyan-300">
+                <div className="flex items-center gap-2 font-bold text-indigo-900">
                   <span className="text-base">⚡</span> Proforma Advance % & Total Value Tool
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-400 font-semibold">Quick Presets:</span>
+                  <span className="text-[10px] text-slate-500 font-bold">Quick Presets:</span>
                   {[25, 30, 50, 70, 100].map((p) => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => handleApplyAdvancePercentage(p)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
                         doc.advancePercent === p
-                          ? "bg-cyan-600 text-white border-cyan-400 shadow-md shadow-cyan-500/30"
-                          : "bg-slate-950 text-slate-300 border-slate-800 hover:border-cyan-500"
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20"
+                          : "bg-white text-slate-700 border-slate-200/80 hover:bg-slate-100"
                       }`}
                     >
                       {p}%
@@ -385,7 +385,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-slate-300 mb-1 font-semibold text-[11px]">
+                  <label className="block text-slate-700 mb-1 font-semibold text-[11px]">
                     Advance Percentage (%)
                   </label>
                   <div className="flex items-center gap-2">
@@ -395,12 +395,12 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       max={100}
                       value={doc.advancePercent || 50}
                       onChange={(e) => setDoc({ ...doc, advancePercent: parseFloat(e.target.value) || 50 })}
-                      className="w-20 bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono font-bold text-cyan-400 text-xs focus:outline-none focus:border-cyan-500"
+                      className="w-20 bg-white border border-slate-200/80 rounded-lg p-2 font-mono font-bold text-indigo-700 text-xs focus:outline-none focus:border-indigo-500"
                     />
                     <button
                       type="button"
                       onClick={() => handleApplyAdvancePercentage(doc.advancePercent || 50)}
-                      className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg text-xs font-bold border border-cyan-400/50 shadow transition-all"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-extrabold border border-indigo-500 shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
                     >
                       Apply {doc.advancePercent || 50}% Advance
                     </button>
@@ -408,7 +408,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 mb-1 font-semibold text-[11px]">
+                  <label className="block text-slate-700 mb-1 font-semibold text-[11px]">
                     Total Proposal / Contract Value (₹)
                   </label>
                   <input
@@ -416,20 +416,20 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="e.g. 118000 (Optional full project value)"
                     value={doc.totalContractValue || ""}
                     onChange={(e) => setDoc({ ...doc, totalContractValue: parseFloat(e.target.value) || undefined })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono font-bold text-amber-300 text-xs focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 font-mono font-bold text-slate-900 text-xs focus:outline-none focus:border-indigo-500"
                   />
-                  <div className="text-[10px] text-slate-400 mt-1">
+                  <div className="text-[10px] text-slate-500 mt-1">
                     Shows: "Total Proposal Value: ₹{doc.totalContractValue ? doc.totalContractValue.toLocaleString("en-IN") : "---"}. Issued for {doc.advancePercent || 50}% Advance."
                   </div>
                 </div>
               </div>
 
               {/* 1-Click Math Actions */}
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80 text-[11px]">
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/80 text-[11px]">
                 <button
                   type="button"
                   onClick={() => handleSplitItemsToAdvance(doc.advancePercent || 50)}
-                  className="bg-amber-950/80 hover:bg-amber-900 border border-amber-800/60 text-amber-300 font-bold px-3 py-1.5 rounded-lg transition-all"
+                  className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                   title="Cut current item amounts in half (e.g. ₹25,000 → ₹12,500) and set proposal value to ₹25,000"
                 >
                   ⚡ Split Item Prices to {doc.advancePercent || 50}% (e.g. ₹25k → ₹12.5k)
@@ -442,7 +442,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       totalContractValue: Math.round(prev.grandTotal * 2),
                     }))
                   }
-                  className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold px-3 py-1.5 rounded-lg transition-all"
+                  className="bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-800 font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                   title="Keep current PI at ₹25,000 and mark full proposal as 2x (₹50,000)"
                 >
                   ⚡ Set Proposal Value to 2x (PI ₹25k → Proposal ₹50k)
@@ -452,28 +452,28 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
           )}
 
           {/* Header Display Toggles in Step 1 */}
-          <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <span className="text-base">🏢</span>
               <div>
-                <div className="text-xs font-bold text-slate-200">Company Header GSTIN</div>
-                <div className="text-[10px] text-slate-400">Display GSTIN (32ABOFR0193C1ZE) in top header reference block</div>
+                <div className="text-xs font-bold text-slate-900">Company Header GSTIN</div>
+                <div className="text-[10px] text-slate-500">Display GSTIN (32ABOFR0193C1ZE) in top header reference block</div>
               </div>
             </div>
-            <label className="flex items-center space-x-2 cursor-pointer bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg">
+            <label className="flex items-center space-x-2 cursor-pointer bg-white border border-slate-200/80 px-3 py-1.5 rounded-lg shadow-2xs">
               <input
                 type="checkbox"
                 checked={doc.showCompanyGst !== false}
                 onChange={(e) => setDoc({ ...doc, showCompanyGst: e.target.checked })}
-                className="rounded bg-slate-950 border-slate-800 text-cyan-600 focus:ring-0"
+                className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
               />
-              <span className="text-xs font-semibold text-cyan-400">Show GSTIN in Header</span>
+              <span className="text-xs font-semibold text-indigo-600">Show GSTIN in Header</span>
             </label>
           </div>
 
           <div className="text-xs space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block text-cyan-400 font-bold">
+              <label className="block text-slate-700 font-bold">
                 ✍️ Opening Note / Preamble Paragraph (Fully Editable)
               </label>
               <div className="flex gap-1.5">
@@ -486,7 +486,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                         "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.",
                     }))
                   }
-                  className="text-[10px] bg-slate-800 hover:bg-cyan-900 text-cyan-300 px-2 py-0.5 rounded font-mono border border-cyan-800/50"
+                  className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg font-bold border border-indigo-200 transition cursor-pointer"
                 >
                   Proforma 50% Advance
                 </button>
@@ -499,7 +499,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                         "Thank you for your interest in Robuverse. LLP. Please find below our official commercial quotation for your review.",
                     }))
                   }
-                  className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono border border-slate-700"
+                  className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-lg font-bold border border-slate-200 transition cursor-pointer"
                 >
                   Quotation Intro
                 </button>
@@ -510,7 +510,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
               placeholder="Type your custom opening note, booking confirmation message, or introductory text here..."
               value={doc.bodyText || ""}
               onChange={(e) => setDoc({ ...doc, bodyText: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-medium focus:outline-none focus:border-cyan-500 leading-relaxed"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500 leading-relaxed"
             />
           </div>
 
@@ -518,7 +518,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             <button
               type="button"
               onClick={() => setActiveStep(2)}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-indigo-500/20 transition cursor-pointer"
             >
               Next: Client & Recipient Details →
             </button>
@@ -528,15 +528,15 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
       {/* STEP 2: Client & Recipient Info */}
       {activeStep === 2 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
               <span>🏢</span> Client & Recipient Details
             </h3>
             {clients.length > 0 && (
               <select
                 onChange={(e) => handleClientSelect(e.target.value)}
-                className="bg-slate-950 border border-cyan-800/60 text-cyan-400 text-xs px-3 py-1.5 rounded-xl font-bold focus:outline-none"
+                className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs px-3 py-1.5 rounded-xl font-bold focus:outline-none cursor-pointer"
               >
                 <option value="">⚡ Autofill from Saved Clients CRM...</option>
                 {clients.map((c) => (
@@ -550,53 +550,53 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Client / Organization Name *</label>
+              <label className="block text-slate-500 mb-1 font-bold">Client / Organization Name *</label>
               <input
                 type="text"
                 required
                 placeholder="CONFEDERATION OF RENEWABLE ENERGY"
                 value={doc.recipientOrg}
                 onChange={(e) => setDoc({ ...doc, recipientOrg: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Client GSTIN Number</label>
+              <label className="block text-slate-500 mb-1 font-bold">Client GSTIN Number</label>
               <input
                 type="text"
                 placeholder="32AAEAC6254D1Z7"
                 value={doc.recipientGstin || ""}
                 onChange={(e) => setDoc({ ...doc, recipientGstin: e.target.value.toUpperCase() })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-mono focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
           <div className="text-xs">
-            <label className="block text-slate-400 mb-1 font-semibold">Billing Address & Pincode *</label>
+            <label className="block text-slate-500 mb-1 font-bold">Billing Address & Pincode *</label>
             <textarea
               rows={3}
               required
               placeholder="Building No, Street, City, State, Pincode"
               value={doc.recipientAddress}
               onChange={(e) => setDoc({ ...doc, recipientAddress: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="text-xs">
-            <label className="block text-slate-400 mb-1 font-semibold">Subject Line (Optional)</label>
+            <label className="block text-slate-500 mb-1 font-bold">Subject Line (Optional)</label>
             <input
               type="text"
               placeholder="e.g. Proforma Invoice for 50% Advance Booking - Unitree G1 Robotics Showcase"
               value={doc.subject || ""}
               onChange={(e) => setDoc({ ...doc, subject: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="text-xs space-y-1.5">
-            <label className="block text-slate-400 font-semibold">
+            <label className="block text-slate-500 font-bold">
               Opening Preamble / Intro Note (Editable)
             </label>
             <textarea
@@ -604,7 +604,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
               placeholder="Enter custom introductory text or booking note..."
               value={doc.bodyText || ""}
               onChange={(e) => setDoc({ ...doc, bodyText: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-medium focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -612,14 +612,14 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             <button
               type="button"
               onClick={() => setActiveStep(1)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs font-bold text-slate-500 hover:text-slate-800"
             >
               ← Back to Type
             </button>
             <button
               type="button"
               onClick={() => setActiveStep(3)}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-indigo-500/20 transition cursor-pointer"
             >
               Next: Line Items & Scope →
             </button>
@@ -629,15 +629,15 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
       {/* STEP 3: Line Items & Tax Calculation */}
       {activeStep === 3 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
               <span>📦</span> Line Items & Tax Breakdown
             </h3>
             <button
               type="button"
               onClick={handleAddItem}
-              className="bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 text-xs px-3 py-1.5 rounded-xl font-bold transition-all"
+              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
             >
               + Add Item Row
             </button>
@@ -645,14 +645,14 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
           <div className="space-y-3">
             {doc.items.map((item, index) => (
-              <div key={item.id || index} className="bg-slate-950 border border-slate-800/80 rounded-xl p-3 space-y-2 text-xs">
+              <div key={item.id || index} className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-300">Item #{index + 1}</span>
+                  <span className="font-bold text-slate-900">Item #{index + 1}</span>
                   <div className="flex items-center space-x-2">
                     {products.length > 0 && (
                       <select
                         onChange={(e) => handleSelectProductCatalog(index, e.target.value)}
-                        className="bg-slate-900 border border-slate-700 text-[11px] text-slate-300 px-2 py-1 rounded-lg"
+                        className="bg-white border border-slate-200 text-[11px] text-slate-700 px-2 py-1 rounded-lg"
                       >
                         <option value="">Insert from Product Catalog...</option>
                         {products.map((p) => (
@@ -666,7 +666,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(index)}
-                        className="text-red-400 hover:underline text-[11px]"
+                        className="text-rose-600 hover:underline text-[11px] font-bold"
                       >
                         Delete
                       </button>
@@ -681,7 +681,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="Description & scope of service/item..."
                     value={item.description}
                     onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-100 font-medium focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
@@ -692,7 +692,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       type="text"
                       value={item.sacCode || "998313"}
                       onChange={(e) => handleItemChange(index, "sacCode", e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 font-mono text-slate-200"
+                      className="w-full bg-white border border-slate-200/80 rounded-lg p-1.5 font-mono text-slate-900"
                     />
                   </div>
                   <div>
@@ -702,7 +702,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       step="any"
                       value={item.qty}
                       onChange={(e) => handleItemChange(index, "qty", e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 font-mono text-slate-200"
+                      className="w-full bg-white border border-slate-200/80 rounded-lg p-1.5 font-mono text-slate-900"
                     />
                   </div>
                   <div>
@@ -710,7 +710,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     <select
                       value={item.unit || "Days"}
                       onChange={(e) => handleItemChange(index, "unit", e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-slate-200 text-[11px] font-medium"
+                      className="w-full bg-white border border-slate-200/80 rounded-lg p-1.5 text-slate-900 text-[11px] font-medium"
                     >
                       <option value="Days">Days</option>
                       <option value="Day">Day</option>
@@ -732,7 +732,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       step="any"
                       value={item.price}
                       onChange={(e) => handleItemChange(index, "price", e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 font-mono text-slate-200"
+                      className="w-full bg-white border border-slate-200/80 rounded-lg p-1.5 font-mono text-slate-900"
                     />
                   </div>
                   <div>
@@ -741,7 +741,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                       type="text"
                       readOnly
                       value={item.amount.toFixed(2)}
-                      className="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-1.5 font-mono font-bold text-emerald-400 cursor-not-allowed"
+                      className="w-full bg-slate-100 border border-slate-200/80 rounded-lg p-1.5 font-mono font-bold text-emerald-700 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -750,9 +750,9 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
           </div>
 
           {/* Table Customization & Column Options */}
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4 text-xs">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <h4 className="font-bold text-cyan-400 text-xs flex items-center gap-1.5">
+          <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+              <h4 className="font-bold text-indigo-700 text-xs flex items-center gap-1.5">
                 <span>⚙️</span> Custom Table Columns & Headings
               </h4>
               <span className="text-[10px] text-slate-500 font-mono">100% Customizable Table Schema</span>
@@ -760,7 +760,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
             {/* Custom Heading Inputs */}
             <div>
-              <label className="block text-slate-400 mb-1.5 font-semibold text-[11px]">
+              <label className="block text-slate-700 mb-1.5 font-semibold text-[11px]">
                 ✏️ Edit Column Headings & Titles:
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
@@ -771,7 +771,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="ITEM & DESCRIPTION"
                     value={doc.colHeaderItem || ""}
                     onChange={(e) => setDoc({ ...doc, colHeaderItem: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -781,7 +781,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="SAC CODE"
                     value={doc.colHeaderSac || ""}
                     onChange={(e) => setDoc({ ...doc, colHeaderSac: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -791,7 +791,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="QTY / SCOPE"
                     value={doc.colHeaderQty || doc.qtyColumnLabel || ""}
                     onChange={(e) => setDoc({ ...doc, colHeaderQty: e.target.value, qtyColumnLabel: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
@@ -801,16 +801,16 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="AMOUNT (₹)"
                     value={doc.colHeaderAmount || ""}
                     onChange={(e) => setDoc({ ...doc, colHeaderAmount: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
             </div>
 
             {/* Total & GST Display Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80">
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Total & GST Display Mode</label>
+                <label className="block text-slate-700 mb-1 font-semibold">Total & GST Display Mode</label>
                 <select
                   value={doc.totalDisplayMode || (doc.showGstDetails === "hide" ? "no_tax_grand_total" : "full_breakdown")}
                   onChange={(e) => {
@@ -818,7 +818,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     const showGst = mode === "total_only" || mode === "no_tax_grand_total" ? "hide" : "show";
                     updateItemsAndTotals(doc.items, doc.gstType, doc.taxRate, showGst, mode);
                   }}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-semibold focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500"
                 >
                   <option value="full_breakdown">📊 Full GST Breakdown (Subtotal + CGST/SGST + Total)</option>
                   <option value="total_only">💰 Single Total Amount Only (Just Total Payable Amount)</option>
@@ -828,11 +828,11 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Table Layout Preset</label>
+                <label className="block text-slate-700 mb-1 font-semibold">Table Layout Preset</label>
                 <select
                   value={doc.tableMode}
                   onChange={(e) => setDoc({ ...doc, tableMode: e.target.value as any })}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"
                 >
                   <option value="summary">Summary Table (Scope & Total)</option>
                   <option value="detailed">Detailed Itemized Breakdown</option>
@@ -843,15 +843,15 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             </div>
 
             {/* Column Toggles */}
-            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs border-t border-slate-800/60">
+            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs border-t border-slate-200/80">
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={doc.showSacCode !== false}
                   onChange={(e) => setDoc({ ...doc, showSacCode: e.target.checked })}
-                  className="w-4 h-4 accent-cyan-500 rounded bg-slate-900 border-slate-700"
+                  className="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300"
                 />
-                <span className="text-slate-300 font-semibold">Show SAC / HSN Code Column</span>
+                <span className="text-slate-700 font-semibold">Show SAC / HSN Code Column</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -859,54 +859,54 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                   type="checkbox"
                   checked={doc.showQtyColumn !== false}
                   onChange={(e) => setDoc({ ...doc, showQtyColumn: e.target.checked })}
-                  className="w-4 h-4 accent-cyan-500 rounded bg-slate-900 border-slate-700"
+                  className="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300"
                 />
-                <span className="text-slate-300 font-semibold">Show Quantity / Scope Column</span>
+                <span className="text-slate-700 font-semibold">Show Quantity / Scope Column</span>
               </label>
             </div>
           </div>
 
           {/* Tax Engine */}
-          <div className="grid grid-cols-2 gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs">
+          <div className="grid grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 text-xs">
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">GST Calculation Type</label>
+              <label className="block text-slate-700 mb-1 font-semibold">GST Calculation Type</label>
               <select
                 value={doc.gstType}
                 onChange={(e) => updateItemsAndTotals(doc.items, e.target.value as any, doc.taxRate)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900"
               >
                 <option value="intrastate">Intrastate (CGST 9% + SGST 9%)</option>
                 <option value="interstate">Interstate (IGST 18%)</option>
               </select>
             </div>
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">GST Tax Rate (%)</label>
+              <label className="block text-slate-700 mb-1 font-semibold">GST Tax Rate (%)</label>
               <input
                 type="number"
                 value={doc.taxRate}
                 onChange={(e) => updateItemsAndTotals(doc.items, doc.gstType, parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 font-mono text-slate-100"
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 font-mono text-slate-900"
               />
             </div>
           </div>
 
-          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs font-mono">
-            <span className="text-slate-400">Grand Total Payable:</span>
-            <span className="text-emerald-400 font-bold text-base">{formatCurrency(doc.grandTotal)}</span>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 flex justify-between items-center text-xs font-mono">
+            <span className="text-slate-600 font-semibold">Grand Total Payable:</span>
+            <span className="text-emerald-700 font-bold text-base">{formatCurrency(doc.grandTotal)}</span>
           </div>
 
           <div className="flex items-center justify-between pt-2">
             <button
               type="button"
               onClick={() => setActiveStep(2)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-slate-500 hover:text-slate-900 font-semibold cursor-pointer"
             >
               ← Back to Client
             </button>
             <button
               type="button"
               onClick={() => setActiveStep(4)}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-5 py-2 rounded-xl text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
             >
               Next: Bank & Signatory →
             </button>
@@ -916,18 +916,18 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
 
       {/* STEP 4: Bank Account & Authorization */}
       {activeStep === 4 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 animate-fade-in">
-          <h3 className="text-sm font-extrabold text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 animate-fade-in">
+          <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-200/80 pb-3 flex items-center gap-2">
             <span>🏦</span> Bank Profile & Signatory Auth
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Payment Bank Profile</label>
+              <label className="block text-slate-700 mb-1 font-semibold">Payment Bank Profile</label>
               <select
                 value={doc.bankAccountId}
                 onChange={(e) => setDoc({ ...doc, bankAccountId: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100"
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
               >
                 {settings.bankAccounts.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -938,7 +938,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Authorized Signatory</label>
+              <label className="block text-slate-700 mb-1 font-semibold">Authorized Signatory</label>
               <select
                 value={doc.signatoryName}
                 onChange={(e) => {
@@ -950,7 +950,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     signatoryTitle: sig?.title || doc.signatoryTitle,
                   });
                 }}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-bold"
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
               >
                 {settings.signatories.map((s) => (
                   <option key={s.id} value={s.name}>
@@ -964,17 +964,17 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
           <div className="text-xs space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-cyan-400 font-semibold flex items-center gap-1.5">
+                <label className="block text-indigo-700 font-semibold flex items-center gap-1.5">
                   <span>💳</span> Bank Transfer Note (Editable Note under Bank Details)
                 </label>
-                <label className="flex items-center space-x-1.5 cursor-pointer bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-[11px]">
+                <label className="flex items-center space-x-1.5 cursor-pointer bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg text-[11px]">
                   <input
                     type="checkbox"
                     checked={doc.showBankTransferNote !== false}
                     onChange={(e) => setDoc({ ...doc, showBankTransferNote: e.target.checked })}
-                    className="rounded bg-slate-950 border-slate-800 text-cyan-600 focus:ring-0 text-xs"
+                    className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 text-xs"
                   />
-                  <span className={doc.showBankTransferNote !== false ? "text-cyan-400 font-bold" : "text-slate-400"}>
+                  <span className={doc.showBankTransferNote !== false ? "text-indigo-700 font-bold" : "text-slate-500"}>
                     {doc.showBankTransferNote !== false ? "Visible on Document" : "Hidden on Document"}
                   </span>
                 </label>
@@ -990,18 +990,18 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                         "Beneficiary Designated Account for Robuverse LLP transfers"
                   }
                   onChange={(e) => setDoc({ ...doc, bankAccountNote: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 font-medium focus:outline-none focus:border-cyan-500 mt-1"
+                  className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500 mt-1"
                 />
               )}
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1 font-semibold">Validity Notes & Payment Terms</label>
+              <label className="block text-slate-700 mb-1 font-semibold">Validity Notes & Payment Terms</label>
               <textarea
                 rows={3}
                 value={doc.validityNotes || ""}
                 onChange={(e) => setDoc({ ...doc, validityNotes: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -1013,9 +1013,9 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 type="checkbox"
                 checked={doc.showSignature}
                 onChange={(e) => setDoc({ ...doc, showSignature: e.target.checked })}
-                className="rounded bg-slate-950 border-slate-800 text-cyan-600 focus:ring-0"
+                className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
               />
-              <span className="text-slate-300">Show Digital Signature</span>
+              <span className="text-slate-700 font-medium">Show Digital Signature</span>
             </label>
 
             <label className="flex items-center space-x-2 cursor-pointer">
@@ -1023,9 +1023,9 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 type="checkbox"
                 checked={doc.showSeal}
                 onChange={(e) => setDoc({ ...doc, showSeal: e.target.checked })}
-                className="rounded bg-slate-950 border-slate-800 text-cyan-600 focus:ring-0"
+                className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
               />
-              <span className="text-slate-300">Show Official Digital Stamp</span>
+              <span className="text-slate-700 font-medium">Show Official Digital Stamp</span>
             </label>
 
             <label className="flex items-center space-x-2 cursor-pointer">
@@ -1033,23 +1033,23 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 type="checkbox"
                 checked={doc.showWatermark}
                 onChange={(e) => setDoc({ ...doc, showWatermark: e.target.checked })}
-                className="rounded bg-slate-950 border-slate-800 text-cyan-600 focus:ring-0"
+                className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
               />
-              <span className="text-slate-300">Show Robuverse Watermark</span>
+              <span className="text-slate-700 font-medium">Show Robuverse Watermark</span>
             </label>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200/80">
             <button
               type="button"
               onClick={() => setActiveStep(3)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-slate-500 hover:text-slate-900 font-semibold cursor-pointer"
             >
               ← Back to Items
             </button>
             <button
               type="submit"
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-8 py-3 rounded-xl shadow-xl transition-all transform active:scale-95 text-xs"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-xl shadow-md shadow-indigo-500/20 transition-all transform active:scale-95 text-xs cursor-pointer"
             >
               ✓ Save & Issue Official Document
             </button>

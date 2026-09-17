@@ -82,11 +82,11 @@ export default async function DebtsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <p className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">Debts & Credit Operations</p>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent mt-1">
+        <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Debts & Credit Operations</p>
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 mt-1">
           Creditors & Debtors
         </h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-xs md:text-sm text-slate-500 font-medium mt-1">
           Track outstanding payables and receivables, manage initial/partial payments, and review payment history.
         </p>
       </div>
@@ -94,58 +94,58 @@ export default async function DebtsPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-2.5 md:gap-5">
         {/* Open Accounts Count */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 relative overflow-hidden shadow-lg shadow-black/20">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-3 md:p-5 relative overflow-hidden shadow-sm">
           <div className="flex items-center justify-between">
             {/* Responsive Label */}
-            <span className="hidden sm:inline text-xs font-semibold text-slate-400 uppercase tracking-wider">Open Accounts</span>
-            <span className="sm:hidden text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Open</span>
-            <div className="p-1.5 md:p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+            <span className="hidden sm:inline text-xs font-bold text-slate-400 uppercase tracking-wider">Open Accounts</span>
+            <span className="sm:hidden text-[9px] font-bold text-slate-400 uppercase tracking-wider">Open</span>
+            <div className="p-1.5 md:p-2 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 shrink-0">
               <Layers className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
           </div>
           <div className="mt-2.5 md:mt-4">
-            <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-100 tracking-tight">
+            <p className="text-sm sm:text-lg md:text-2xl font-extrabold text-slate-900 tracking-tight">
               {openAccountsCount}
             </p>
-            <p className="hidden sm:block text-xs text-slate-500 mt-1">Active ledger files</p>
+            <p className="hidden sm:block text-xs text-slate-500 font-medium mt-1">Active ledger files</p>
             <p className="sm:hidden text-[8px] text-slate-500 mt-0.5">Active files</p>
           </div>
         </div>
 
         {/* Total Receivables (Get Money) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 relative overflow-hidden shadow-lg shadow-black/20">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-3 md:p-5 relative overflow-hidden shadow-sm">
           <div className="flex items-center justify-between">
             {/* Responsive Label */}
-            <span className="hidden sm:inline text-xs font-semibold text-slate-400 uppercase tracking-wider">Receivables (Get)</span>
-            <span className="sm:hidden text-[9px] font-semibold text-slate-400 uppercase tracking-wider">To Get</span>
-            <div className="p-1.5 md:p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 shrink-0">
+            <span className="hidden sm:inline text-xs font-bold text-slate-400 uppercase tracking-wider">Receivables (Get)</span>
+            <span className="sm:hidden text-[9px] font-bold text-slate-400 uppercase tracking-wider">To Get</span>
+            <div className="p-1.5 md:p-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 shrink-0">
               <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
           </div>
           <div className="mt-2.5 md:mt-4">
-            <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-100 tracking-tight">
+            <p className="text-sm sm:text-lg md:text-2xl font-extrabold text-slate-900 tracking-tight">
               {formatCurrency(totalReceivable)}
             </p>
-            <p className="hidden sm:block text-xs text-slate-500 mt-1">To collect</p>
+            <p className="hidden sm:block text-xs text-slate-500 font-medium mt-1">To collect</p>
             <p className="sm:hidden text-[8px] text-slate-500 mt-0.5">Receivable</p>
           </div>
         </div>
 
         {/* Total Payables (Give Money) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-5 relative overflow-hidden shadow-lg shadow-black/20">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-3 md:p-5 relative overflow-hidden shadow-sm">
           <div className="flex items-center justify-between">
             {/* Responsive Label */}
-            <span className="hidden sm:inline text-xs font-semibold text-slate-400 uppercase tracking-wider">Payables (Give)</span>
-            <span className="sm:hidden text-[9px] font-semibold text-slate-400 uppercase tracking-wider">To Give</span>
-            <div className="p-1.5 md:p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 shrink-0">
+            <span className="hidden sm:inline text-xs font-bold text-slate-400 uppercase tracking-wider">Payables (Give)</span>
+            <span className="sm:hidden text-[9px] font-bold text-slate-400 uppercase tracking-wider">To Give</span>
+            <div className="p-1.5 md:p-2 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 shrink-0">
               <TrendingDown className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </div>
           </div>
           <div className="mt-2.5 md:mt-4">
-            <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-100 tracking-tight">
+            <p className="text-sm sm:text-lg md:text-2xl font-extrabold text-slate-900 tracking-tight">
               {formatCurrency(totalPayable)}
             </p>
-            <p className="hidden sm:block text-xs text-slate-500 mt-1">Owed to others</p>
+            <p className="hidden sm:block text-xs text-slate-500 font-medium mt-1">Owed to others</p>
             <p className="sm:hidden text-[8px] text-slate-500 mt-0.5">Owed</p>
           </div>
         </div>
@@ -155,15 +155,15 @@ export default async function DebtsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
         {/* Debts Register List */}
         <div className="xl:col-span-2 flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-slate-100">Accounts Register</h2>
+          <h2 className="text-base font-bold text-slate-900">Accounts Register</h2>
 
           {serializedDebts.length > 0 ? (
             <DebtTable debts={serializedDebts} />
           ) : (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-5 shadow-lg h-64 flex flex-col items-center justify-center text-center">
-              <AlertCircle className="h-10 w-10 text-slate-700 mb-2" />
-              <p className="text-sm font-medium text-slate-400">No active accounts found.</p>
-              <p className="text-xs text-slate-500 mt-1">
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm h-64 flex flex-col items-center justify-center text-center">
+              <AlertCircle className="h-10 w-10 text-slate-300 mb-2" />
+              <p className="text-sm font-semibold text-slate-600">No active accounts found.</p>
+              <p className="text-xs text-slate-400 mt-1">
                 Use the &ldquo;Create New Account&rdquo; panel to log new payables or receivables.
               </p>
             </div>

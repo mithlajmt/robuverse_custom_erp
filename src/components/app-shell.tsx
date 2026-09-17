@@ -13,7 +13,8 @@ import {
   Clock,
   GraduationCap,
   FileText,
-  FileSignature
+  FileSignature,
+  Target
 } from "lucide-react";
 import { logoutUser } from "@/lib/actions/auth";
 
@@ -26,10 +27,10 @@ type NavItem = {
 
 const navigationItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/leads", label: "Leads CRM", icon: Target },
   { href: "/transactions", label: "Transactions", icon: CircleDollarSign },
   { href: "/certificates", label: "Certificates", icon: GraduationCap },
   { href: "/documents", label: "Document Studio", icon: FileText },
-  { href: "/letterhead", label: "Letterhead & Quotes", icon: FileSignature },
   { href: "/salary", label: "Salaries", icon: Zap, disabled: true },
   { href: "/debts", label: "Debts", icon: Clock }
 ];
@@ -39,23 +40,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-slate-950 text-slate-100 flex flex-col lg:flex-row font-sans">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-slate-50 text-slate-900 flex flex-col lg:flex-row font-sans">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-72 bg-slate-900 border-r border-slate-800 shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-900/50">
+      <aside className="hidden lg:flex flex-col w-72 bg-[#0f172a] border-r border-slate-800 shrink-0 text-white shadow-xl">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800/80 bg-slate-900/60">
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-900 shadow-md shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-              <Zap className="h-5 w-5 fill-slate-900 stroke-none" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/30 group-hover:scale-105 transition-transform">
+              <Zap className="h-5 w-5 fill-white stroke-none" />
             </div>
             <div>
-              <p className="text-sm font-semibold tracking-wide bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Robuverse ERP</p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Internal Finance OS</p>
+              <p className="text-sm font-extrabold tracking-wide text-white">Robuverse ERP</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Agency OS</p>
             </div>
           </Link>
         </div>
 
         {/* Sidebar Nav */}
-        <nav className="flex-1 py-6 px-4 space-y-1">
+        <nav className="flex-1 py-6 px-4 space-y-1.5">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -63,12 +64,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               return (
                 <div
                   key={item.label}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed select-none"
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 cursor-not-allowed select-none"
                   title="Coming soon"
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4.5 w-4.5" />
                   <span>{item.label}</span>
-                  <span className="ml-auto text-[9px] font-semibold tracking-wider text-slate-700 bg-slate-800/50 px-1.5 py-0.5 rounded uppercase">Soon</span>
+                  <span className="ml-auto text-[8px] font-bold tracking-wider text-slate-500 bg-slate-800/80 px-1.5 py-0.5 rounded uppercase">Soon</span>
                 </div>
               );
             }
@@ -76,13 +77,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group ${
                   isActive
-                    ? "bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-400"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
                 }`}
               >
-                <Icon className={`h-5 w-5 transition-transform group-hover:scale-105 ${isActive ? "text-cyan-400" : "text-slate-400"}`} />
+                <Icon className={`h-4.5 w-4.5 transition-transform group-hover:scale-105 ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -90,11 +91,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Sidebar Footer / Sign Out */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/30">
+        <div className="p-4 border-t border-slate-800/80 bg-slate-900/40">
           <form action={logoutUser}>
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-800 hover:bg-red-950/30 border border-slate-700 hover:border-red-900/50 px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-red-200 transition-all duration-200"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800/80 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-900/60 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-rose-200 transition-all duration-200"
             >
               <LogOut className="h-4 w-4" />
               <span>Sign out</span>
@@ -104,19 +105,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile Top Bar */}
-      <header className="lg:hidden h-16 flex items-center justify-between px-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+      <header className="lg:hidden h-16 flex items-center justify-between px-4 border-b border-slate-200 bg-white/90 backdrop-blur sticky top-0 z-50 text-slate-900">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-900">
-            <Zap className="h-4.5 w-4.5 fill-slate-900 stroke-none" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
+            <Zap className="h-4.5 w-4.5 fill-white stroke-none" />
           </div>
           <div>
-            <p className="text-xs font-semibold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Robuverse ERP</p>
+            <p className="text-xs font-bold text-slate-900">Robuverse ERP</p>
           </div>
         </Link>
 
         <button
           onClick={() => setMobileMenuOpen(true)}
-          className="h-10 w-10 flex items-center justify-center rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-300"
+          className="h-10 w-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700"
           aria-label="Open menu"
         >
           <Menu className="h-6 w-6" />
@@ -125,13 +126,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm lg:hidden">
-          <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-slate-900 p-6 border-l border-slate-800 flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between pb-6 border-b border-slate-800">
-              <span className="font-semibold text-slate-200">Navigation</span>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm lg:hidden">
+          <div className="fixed inset-y-0 right-0 w-full max-w-xs bg-white p-6 border-l border-slate-200 flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+              <span className="font-bold text-slate-900">Navigation</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400"
+                className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
@@ -146,11 +147,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   return (
                     <div
                       key={item.label}
-                      className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed select-none"
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold text-slate-400 cursor-not-allowed select-none"
                     >
                       <Icon className="h-5 w-5" />
                       <span>{item.label}</span>
-                      <span className="ml-auto text-[8px] font-semibold text-slate-700 bg-slate-850 px-1 py-0.5 rounded uppercase">Soon</span>
+                      <span className="ml-auto text-[8px] font-bold text-slate-400 bg-slate-100 px-1 py-0.5 rounded uppercase">Soon</span>
                     </div>
                   );
                 }
@@ -159,10 +160,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-semibold transition-all ${
                       isActive
-                        ? "bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-400"
-                        : "text-slate-400 hover:bg-slate-800/30"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -172,11 +173,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
 
-            <div className="pt-6 border-t border-slate-800">
+            <div className="pt-6 border-t border-slate-100">
               <form action={logoutUser}>
                 <button
                   type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-800 hover:bg-red-950/30 border border-slate-700 hover:border-red-900/50 px-4 py-3 text-sm font-medium text-slate-300 hover:text-red-200 transition-all"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 px-4 py-3 text-xs font-semibold text-slate-700 hover:text-rose-600 transition-all"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Sign out</span>
@@ -188,7 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 lg:h-full lg:overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 lg:h-full lg:overflow-hidden bg-slate-50">
         <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
           {children}
         </div>

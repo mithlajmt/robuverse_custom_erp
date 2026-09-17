@@ -12,7 +12,7 @@ export function CollapsibleDebtForm() {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border border-cyan-500/10 hover:border-cyan-500/30 bg-slate-900 hover:bg-cyan-500/5 text-cyan-400 py-3 px-4 text-sm font-semibold transition duration-200 xl:hidden shadow-lg shadow-black/10"
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white hover:bg-slate-50 text-indigo-700 py-3 px-4 text-xs font-extrabold transition duration-200 xl:hidden shadow-sm cursor-pointer"
       >
         {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
         <span>{isOpen ? "Close Account Creator" : "Create New Account"}</span>

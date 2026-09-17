@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import DocumentForm from "@/components/documents/DocumentForm";
 import DocumentPreview from "@/components/documents/DocumentPreview";
 import DocumentHistory from "@/components/documents/DocumentHistory";
@@ -11,13 +11,31 @@ import { BusinessDocument, CompanySettings } from "@/types/document";
 import { DocumentStorageService } from "@/lib/storage/documentStorage";
 import { FileText, PlusCircle, History, Users, Package, Settings, Plus } from "lucide-react";
 
-export default function DocumentsStudioPage() {
+import { useSearchParams } from "next/navigation";
+import { linkDocumentToLeadAction } from "@/lib/actions/leads";
+
+function DocumentsStudioContent() {
+  const searchParams = useSearchParams();
+  const leadId = searchParams.get("leadId");
+  const leadNumber = searchParams.get("leadNumber");
+  const recipientName = searchParams.get("recipientName");
+  const recipientOrg = searchParams.get("recipientOrg");
+
   const [activeTab, setActiveTab] = useState<
     "create" | "history" | "clients" | "products" | "settings"
-  >("history");
+  >(leadId ? "create" : "history");
 
   const [settings, setSettings] = useState<CompanySettings>(DocumentStorageService.getSettings());
-  const [editingDoc, setEditingDoc] = useState<BusinessDocument | undefined>(undefined);
+  const [editingDoc, setEditingDoc] = useState<Partial<BusinessDocument> | undefined>(
+    leadId
+      ? {
+          leadId,
+          leadNumber: leadNumber || undefined,
+          recipientName: recipientName || "",
+          recipientOrg: recipientOrg || ""
+        }
+      : undefined
+  );
   const [previewDoc, setPreviewDoc] = useState<BusinessDocument | null>(null);
 
   useEffect(() => {
@@ -40,22 +58,33 @@ export default function DocumentsStudioPage() {
     setActiveTab("create");
   };
 
-  const handleSaveSuccess = (savedDoc: BusinessDocument) => {
+  const handleSaveSuccess = async (savedDoc: BusinessDocument) => {
     setEditingDoc(savedDoc);
-    alert(`Document ${savedDoc.docNumber} saved successfully!`);
+    
+    // Auto link document to lead if created from lead
+    const currentLeadId = savedDoc.leadId || leadId;
+    if (currentLeadId) {
+      try {
+        await linkDocumentToLeadAction(currentLeadId, savedDoc.docNumber);
+      } catch (e) {
+        console.error("Error linking doc to lead:", e);
+      }
+    }
+
+    alert(`Document ${savedDoc.docNumber} saved successfully${currentLeadId ? " & linked to Lead!" : "!"}`);
     setActiveTab("history");
   };
 
   return (
     <div className="space-y-6">
       {/* Top Studio Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2.5">
-            <FileText className="h-7 w-7 text-cyan-400" />
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <FileText className="h-7 w-7 text-indigo-600" />
             <span>Document Studio</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             Create, issue, preview, and archive GST Invoices, Quotations, Proforma Invoices & Challans.
           </p>
         </div>
@@ -63,7 +92,7 @@ export default function DocumentsStudioPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleNewDocument}
-            className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4.5 py-2.5 rounded-xl text-xs font-extrabold shadow-md shadow-indigo-500/20 transition cursor-pointer"
           >
             <Plus className="h-4 w-4 stroke-[3]" />
             <span>New Document</span>
@@ -72,13 +101,13 @@ export default function DocumentsStudioPage() {
       </div>
 
       {/* Sub Navigation Bar */}
-      <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 w-fit backdrop-blur shadow-lg">
+      <div className="flex flex-wrap items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <button
           onClick={() => setActiveTab("history")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
             activeTab === "history"
-              ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
           }`}
         >
           <History className="h-4 w-4" />
@@ -86,10 +115,10 @@ export default function DocumentsStudioPage() {
         </button>
         <button
           onClick={() => setActiveTab("create")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
             activeTab === "create"
-              ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
           }`}
         >
           <PlusCircle className="h-4 w-4" />
@@ -97,10 +126,10 @@ export default function DocumentsStudioPage() {
         </button>
         <button
           onClick={() => setActiveTab("clients")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
             activeTab === "clients"
-              ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
           }`}
         >
           <Users className="h-4 w-4" />
@@ -108,10 +137,10 @@ export default function DocumentsStudioPage() {
         </button>
         <button
           onClick={() => setActiveTab("products")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
             activeTab === "products"
-              ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
           }`}
         >
           <Package className="h-4 w-4" />
@@ -119,10 +148,10 @@ export default function DocumentsStudioPage() {
         </button>
         <button
           onClick={() => setActiveTab("settings")}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
             activeTab === "settings"
-              ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-              : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
           }`}
         >
           <Settings className="h-4 w-4" />
@@ -163,7 +192,7 @@ export default function DocumentsStudioPage() {
             {previewDoc ? (
               <DocumentPreview document={previewDoc} settings={settings} scale={0.72} />
             ) : (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-500 shadow-sm">
                 Preview loading...
               </div>
             )}
@@ -184,5 +213,13 @@ export default function DocumentsStudioPage() {
 
       {activeTab === "settings" && <SettingsManager />}
     </div>
+  );
+}
+
+export default function DocumentsStudioPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs text-slate-400">Loading Document Studio...</div>}>
+      <DocumentsStudioContent />
+    </Suspense>
   );
 }

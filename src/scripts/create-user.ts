@@ -11,43 +11,78 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
   },
 });
 
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 async function main() {
-  const email = process.env.DEFAULT_ADMIN_EMAIL || "mithlajmatta@gmail.com";
-  const password = "test@123";
+  const adminUsers = [
+    { email: "mithlajmatta@gmail.com", password: "test@123", name: "Mithlaj Matta" },
+    { email: "nihal1abs@gmail.com", password: "test@123", name: "Nihal Labs" }
+  ];
 
-  console.log(`Setting up user ${email} in Supabase Auth...`);
+  for (const userConfig of adminUsers) {
+    const { email, password, name } = userConfig;
+    console.log(`Setting up user ${email} in Supabase Auth...`);
 
-  const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
-  if (listError) {
-    console.error("Error listing users:", listError.message);
-  }
-
-  const existingUser = usersData?.users.find((u) => u.email === email);
-
-  if (existingUser) {
-    console.log(`Updating password for existing user: ${email}`);
-    const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {
-      password,
-      email_confirm: true,
-    });
-    if (updateError) {
-      console.error("Error updating user:", updateError.message);
-    } else {
-      console.log(`✅ Successfully updated password for ${email} to '${password}'!`);
+    const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) {
+      console.error("Error listing users:", listError.message);
     }
-  } else {
-    console.log(`Creating new user: ${email}`);
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-    if (createError) {
-      console.error("Error creating user:", createError.message);
+
+    let userId: string | null = null;
+    const existingUser = usersData?.users.find((u) => u.email === email);
+
+    if (existingUser) {
+      userId = existingUser.id;
+      console.log(`Updating password for existing user: ${email} (ID: ${userId})`);
+      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+        password,
+        email_confirm: true,
+      });
+      if (updateError) {
+        console.error("Error updating user:", updateError.message);
+      } else {
+        console.log(`✅ Successfully updated password for ${email}!`);
+      }
     } else {
-      console.log(`✅ Successfully created user ${email} with password '${password}'!`);
+      console.log(`Creating new user: ${email}`);
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+      if (createError) {
+        console.error("Error creating user:", createError.message);
+      } else {
+        userId = newUser.user.id;
+        console.log(`✅ Successfully created user ${email} (ID: ${userId})!`);
+      }
+    }
+
+    if (userId) {
+      console.log(`Upserting Prisma Profile for ${email}...`);
+      await prisma.profile.upsert({
+        where: { email },
+        update: { fullName: name, role: "admin" },
+        create: {
+          id: userId,
+          email,
+          fullName: name,
+          role: "admin"
+        }
+      });
+      console.log(`✅ Prisma Profile synced for ${email}!`);
     }
   }
 }
 
-main();
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

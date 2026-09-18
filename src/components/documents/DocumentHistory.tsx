@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { BusinessDocument, DocType } from "@/types/document";
 import { DocumentStorageService } from "@/lib/storage/documentStorage";
 import { formatCurrency } from "@/lib/utils/currency";
+import { getDocumentsAction, deleteDocumentAction } from "@/lib/actions/documents";
 
 interface DocumentHistoryProps {
   onEditDocument: (doc: BusinessDocument) => void;
@@ -19,12 +20,26 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
     loadDocuments();
   }, []);
 
-  const loadDocuments = () => {
+  const loadDocuments = async () => {
+    try {
+      const dbDocs = await getDocumentsAction();
+      if (dbDocs && dbDocs.length > 0) {
+        setDocuments(dbDocs);
+        return;
+      }
+    } catch (e) {
+      console.error("Could not fetch documents from DB:", e);
+    }
     setDocuments(DocumentStorageService.getDocuments());
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this document?")) {
+      try {
+        await deleteDocumentAction(id);
+      } catch (e) {
+        console.error("DB Delete error:", e);
+      }
       DocumentStorageService.deleteDocument(id);
       loadDocuments();
     }

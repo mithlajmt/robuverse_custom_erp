@@ -198,13 +198,19 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                       <span className="font-semibold uppercase tracking-wider text-slate-400">Due Date:</span> {doc.dueDate}
                     </div>
                   )}
-                  {doc.showCompanyGst !== false && (
+                  {doc.isGstBill !== false && doc.showCompanyGst !== false && (
                     <div className="font-mono">
                       <span className="font-semibold uppercase tracking-wider text-slate-400">GSTIN:</span>{" "}
                       <span className="font-bold text-slate-800">{settings.gstin || "32ABOFR0193C1ZE"}</span>
                     </div>
                   )}
-                  {doc.piReference && (
+                  {doc.isGstBill !== false && doc.placeOfSupply && (
+                    <div className="font-mono">
+                      <span className="font-semibold uppercase tracking-wider text-slate-400">PLACE OF SUPPLY:</span>{" "}
+                      <span className="font-bold text-slate-800">{doc.placeOfSupply}</span>
+                    </div>
+                  )}
+                  {doc.piReference && doc.piReference.trim() !== "" && (
                     <div className="font-mono">
                       <span className="font-semibold uppercase tracking-wider text-slate-400">Against PI Ref:</span>{" "}
                       <span className="font-medium text-slate-800">{doc.piReference}</span>
@@ -214,7 +220,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
 
                 <div className="text-right">
                   <h2 className="font-cinzel text-[13px] font-extrabold tracking-widest text-indigo-950 border-b-2 border-indigo-950/20 pb-0.5 inline-block uppercase leading-tight">
-                    {doc.docType.replace("_", " ")}
+                    {doc.isGstBill === false || doc.docType === "NON_GST_INVOICE" ? "BILL OF SUPPLY" : doc.docType.replace("_", " ")}
                   </h2>
                   {doc.docSubtitle && (
                     <div className="text-[8px] font-bold text-indigo-900 max-w-[85mm] mt-1 font-sans leading-relaxed uppercase tracking-wider">
@@ -229,20 +235,23 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                 <section className="mb-3.5 bg-slate-50/80 p-3 rounded-lg border border-slate-200">
                   <div className="text-[10.5px] leading-relaxed text-slate-700">
                     <span className="text-[8px] font-extrabold uppercase tracking-widest text-slate-400 block mb-1">
-                      To:
+                      TO:
                     </span>
-                    {doc.recipientName && (
-                      <div className="font-bold text-slate-800 text-[11.5px] tracking-wide mb-0.5">{doc.recipientName}</div>
-                    )}
                     {doc.recipientOrg && (
-                      <div className="font-semibold text-indigo-950 text-[11px] mb-1">{doc.recipientOrg}</div>
+                      <div className="font-extrabold text-indigo-950 text-[11.5px] mb-0.5">{doc.recipientOrg}</div>
+                    )}
+                    {doc.recipientName && doc.recipientName.trim() !== "" && doc.recipientName.trim().toLowerCase() !== doc.recipientOrg.trim().toLowerCase() && (
+                      <div className="font-semibold text-slate-700 text-[10.5px] mb-1">
+                        <span className="font-extrabold text-slate-400 text-[8.5px] uppercase tracking-wider">Kind Attn: </span>
+                        {doc.recipientName}
+                      </div>
                     )}
                     {doc.recipientAddress && (
-                      <div className="whitespace-pre-line text-slate-600 leading-relaxed text-[10px] mb-1">
+                      <div className="whitespace-pre-line text-slate-600 leading-relaxed text-[10px] mb-1 font-medium">
                         {doc.recipientAddress}
                       </div>
                     )}
-                    {doc.recipientGstin && (
+                    {doc.isGstBill !== false && doc.recipientGstin && (
                       <div className="font-mono text-[10px] font-bold text-slate-800">
                         GSTIN: {doc.recipientGstin}
                       </div>
@@ -312,7 +321,9 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                                 </td>
                               )}
                               <td className="py-2.5 px-3 text-right font-semibold font-mono text-slate-800">
-                                ₹ {item.amount.toLocaleString("en-IN")}
+                                {doc.showRowAmounts !== false && item.amount > 0
+                                  ? `₹ ${item.amount.toLocaleString("en-IN")}`
+                                  : doc.showRowAmounts === false ? "-" : "Included"}
                               </td>
                             </tr>
                           ))}
@@ -497,12 +508,18 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
 
               {/* Payment Terms & Bank Account Details */}
               <section className="grid grid-cols-2 gap-4 mb-3.5 text-[9px] leading-relaxed text-slate-600">
-                {bankAccount && (
+                {/* Column 1: Bank Details OR Payment Terms */}
+                {doc.showBankDetails !== false && bankAccount ? (
                   <div className="bg-slate-50/40 p-2.5 rounded-lg border border-slate-200">
                     <h4 className="font-bold text-indigo-950 uppercase text-[8.5px] tracking-wider mb-1.5 border-b border-indigo-950/10 pb-1">
-                      Payment Terms & Bank Details
+                      {doc.paymentTerms ? "Payment Terms & Bank Details" : "Bank Details"}
                     </h4>
                     <div className="space-y-1.5">
+                      {doc.paymentTerms && (
+                        <p className="whitespace-pre-line leading-relaxed text-[8.5px] text-slate-700 font-medium mb-1 border-b border-slate-200 pb-1">
+                          {doc.paymentTerms}
+                        </p>
+                      )}
                       <div className="bg-indigo-50/80 border-l-2 border-indigo-700 p-2 rounded text-[8.5px] font-medium text-indigo-950 leading-relaxed space-y-0.5">
                         <p><span className="font-bold">Beneficiary:</span> {bankAccount.accountName}</p>
                         <p><span className="font-bold">Bank:</span> {bankAccount.bankName} ({bankAccount.branch})</p>
@@ -517,6 +534,15 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                       )}
                     </div>
                   </div>
+                ) : (
+                  <div className="bg-slate-50/40 p-2.5 rounded-lg border border-slate-200">
+                    <h4 className="font-bold text-indigo-950 uppercase text-[8.5px] tracking-wider mb-1.5 border-b border-indigo-950/10 pb-1">
+                      Payment Terms
+                    </h4>
+                    <p className="whitespace-pre-line leading-relaxed text-[8.5px] text-slate-700 font-medium">
+                      {doc.paymentTerms || ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch"}
+                    </p>
+                  </div>
                 )}
 
                 {doc.validityNotes && (
@@ -524,7 +550,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                     <h4 className="font-bold text-indigo-950 uppercase text-[8.5px] tracking-wider mb-1.5 border-b border-indigo-950/10 pb-1">
                       Validity & Notes
                     </h4>
-                    <p className="whitespace-pre-line leading-relaxed text-[9px]">
+                    <p className="whitespace-pre-line leading-relaxed text-[8.5px] text-slate-700 font-medium">
                       {doc.validityNotes}
                     </p>
                   </div>

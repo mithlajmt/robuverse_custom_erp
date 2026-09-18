@@ -267,3 +267,102 @@ model Transaction {
   @@index([isDeleted])
   @@index([source])
 }
+
+enum DocType {
+  QUOTATION
+  PROFORMA
+  TAX_INVOICE
+  NON_GST_INVOICE
+  LETTERHEAD
+  CERTIFICATE
+}
+
+enum DocStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+model Document {
+  id                   String         @id @default(cuid())
+  docType              DocType        @default(TAX_INVOICE)
+  isGstBill            Boolean        @default(true)
+  docSubtitle          String?
+  docNumber            String         @unique
+  date                 DateTime       @default(now())
+  dueDate              DateTime?
+  refNo                String?
+  piReference          String?
+  placeOfSupply        String?        @default("Kerala (State Code: 32)")
+  leadId               String?
+  leadNumber           String?
+  
+  // Client / Recipient Info
+  recipientName        String?
+  recipientOrg         String
+  recipientAddress     String
+  recipientGstin       String?
+  
+  // Content
+  subject              String?
+  bodyText             String?
+  
+  // Tax Details
+  gstMode              String         @default("calculated")
+  gstType              String         @default("intrastate")
+  taxRate              Decimal        @default(18) @db.Decimal(5, 2)
+  subtotal             Decimal        @db.Decimal(14, 2)
+  discountTotal        Decimal        @default(0) @db.Decimal(14, 2)
+  taxAmount            Decimal        @default(0) @db.Decimal(14, 2)
+  cgstAmount           Decimal        @default(0) @db.Decimal(14, 2)
+  sgstAmount           Decimal        @default(0) @db.Decimal(14, 2)
+  igstAmount           Decimal        @default(0) @db.Decimal(14, 2)
+  grandTotal           Decimal        @db.Decimal(14, 2)
+  amountInWords        String?
+  
+  // Payment Breakdown & Notes
+  advanceReceived      Decimal        @default(0) @db.Decimal(14, 2)
+  balanceDue           Decimal        @default(0) @db.Decimal(14, 2)
+  paymentTerms         String?
+  validityNotes        String?
+  closingText          String?
+  signatoryName        String         @default("Mithlaj MT.")
+  signatoryTitle       String         @default("Co-Founder & CTO")
+  bankAccountId        String?        @default("bank_federal_nihal")
+  
+  // Display Toggles
+  showSeal             Boolean        @default(true)
+  showSignature        Boolean        @default(true)
+  showWatermark        Boolean        @default(true)
+  showRecipientSection Boolean        @default(true)
+  showCompanyGst       Boolean        @default(true)
+  showBankTransferNote Boolean        @default(true)
+  
+  // Items relation
+  items                DocumentItem[]
+  
+  status               DocStatus      @default(ISSUED)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([docType])
+  @@index([docNumber])
+  @@index([isGstBill])
+  @@index([status])
+}
+
+model DocumentItem {
+  id              String   @id @default(cuid())
+  documentId      String
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  description     String
+  sacCode         String?
+  qty             Decimal  @default(1) @db.Decimal(10, 2)
+  unit            String?  @default("Days")
+  price           Decimal  @db.Decimal(14, 2)
+  discountPercent Decimal  @default(0) @db.Decimal(5, 2)
+  amount          Decimal  @db.Decimal(14, 2)
+
+  @@index([documentId])
+}

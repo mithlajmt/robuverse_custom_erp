@@ -137,7 +137,8 @@ export const calculateDocumentTotals = (
   gstMode: "exclusive" | "inclusive" | "calculated",
   gstType: "intrastate" | "interstate",
   showGstDetails?: "show" | "gstin_only" | "hide",
-  totalDisplayMode?: "full_breakdown" | "total_only" | "subtotal_plus_tax" | "no_tax_grand_total"
+  totalDisplayMode?: "full_breakdown" | "total_only" | "subtotal_plus_tax" | "no_tax_grand_total",
+  customSubtotal?: number
 ) => {
   let subtotal = 0;
   let discountTotal = 0;
@@ -148,6 +149,10 @@ export const calculateDocumentTotals = (
     discountTotal += lineDiscount;
     subtotal += lineGross - lineDiscount;
   });
+
+  if (customSubtotal !== undefined && customSubtotal > 0) {
+    subtotal = customSubtotal;
+  }
 
   let taxAmount = 0;
   let grandTotal = subtotal;
@@ -305,6 +310,7 @@ export class DocumentStorageService {
       QUOTATION: "RBV/QUO",
       PROFORMA: "RBV/PI",
       TAX_INVOICE: "RBV/INV",
+      NON_GST_INVOICE: "RBV/BILL",
       LETTERHEAD: "RBV/LTR",
       CERTIFICATE: "RV-INT",
     };
@@ -377,6 +383,7 @@ export class DocumentStorageService {
       QUOTATION: "OFFICIAL COMMERCIAL QUOTATION",
       PROFORMA: `${advancePercent}% ADVANCE PAYMENT - ${sourceDoc.recipientOrg || "BOOKING CONFIRMATION"}`,
       TAX_INVOICE: "OFFICIAL GST TAX INVOICE",
+      NON_GST_INVOICE: "OFFICIAL BILL OF SUPPLY - NON-GST",
       LETTERHEAD: "OFFICIAL COMPANY CORRESPONDENCE",
       CERTIFICATE: "COMPLETION CERTIFICATE",
     };
@@ -400,6 +407,7 @@ export class DocumentStorageService {
       QUOTATION: "Thank you for your interest in Robuverse. LLP. Please find below our official commercial quotation for your review.",
       PROFORMA: `Thank you for confirming your booking. Please find below our Proforma Invoice towards the ${advancePercent}% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.`,
       TAX_INVOICE: "Thank you for your business. Please find below our official Tax Invoice for the equipment deployment and technical services rendered.",
+      NON_GST_INVOICE: "Thank you for your business. Please find below our official non-tax Bill of Supply for equipment deployment and technical services rendered.",
       LETTERHEAD: "Please find below our official company announcement and technical notice.",
       CERTIFICATE: "This is to certify the completion of practical training and workshop requirements.",
     };

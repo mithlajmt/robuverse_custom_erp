@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { BusinessDocument, Client, Product, CompanySettings, DocType, DocumentItem } from "@/types/document";
 import { DocumentStorageService, calculateDocumentTotals } from "@/lib/storage/documentStorage";
 import { formatCurrency } from "@/lib/utils/currency";
+import { saveDocumentAction, getNextDocNumberAction } from "@/lib/actions/documents";
 
 interface DocumentFormProps {
   initialDocument?: Partial<BusinessDocument>;
@@ -16,58 +17,78 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [doc, setDoc] = useState<BusinessDocument>(() => {
-    const defaultType: DocType = (initialDocument?.docType as DocType) || "PROFORMA";
-    const refNum = initialDocument?.docNumber || DocumentStorageService.getNextDocNumber(defaultType);
+    const defaultType: DocType = (initialDocument?.docType as DocType) || "TAX_INVOICE";
+    const defaultIsGst = initialDocument?.isGstBill !== undefined ? initialDocument.isGstBill : (defaultType !== "NON_GST_INVOICE");
+    const refNum = initialDocument?.docNumber || (defaultIsGst ? "RBV/INV/2026/201" : "RBV/BILL/2026/101");
+    
+    const initialItems = initialDocument?.items && initialDocument.items.length > 0 ? initialDocument.items : [
+      {
+        id: "item_1",
+        description: "Teacher Skill Development Program (AI & Robotics)",
+        sacCode: "999293",
+        qty: 3,
+        unit: "Days",
+        price: 0,
+        discountPercent: 0,
+        amount: 0,
+      },
+    ];
+
+    const initialTaxRate = defaultIsGst ? 18 : 0;
+    const initialCustomSubtotal = initialDocument?.customSubtotal;
+
+    const initialTotals = calculateDocumentTotals(
+      initialItems,
+      initialTaxRate,
+      "calculated",
+      "intrastate",
+      defaultIsGst ? "show" : "hide",
+      defaultIsGst ? "full_breakdown" : "no_tax_grand_total",
+      initialCustomSubtotal
+    );
+
     const baseDoc: BusinessDocument = {
       id: initialDocument?.id || "",
       docType: defaultType,
-      docSubtitle: initialDocument?.docSubtitle || "PROFORMA INVOICE FOR PAYMENT ADVANCE",
+      isGstBill: defaultIsGst,
+      docSubtitle: initialDocument?.docSubtitle || (defaultIsGst ? "OFFICIAL GST TAX INVOICE" : "OFFICIAL BILL OF SUPPLY - NON-GST"),
       docNumber: refNum,
       date: initialDocument?.date || new Date().toISOString().split("T")[0],
       dueDate: initialDocument?.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
       refNo: initialDocument?.refNo || refNum,
+      piReference: initialDocument?.piReference || "",
+      placeOfSupply: initialDocument?.placeOfSupply || "Kerala (State Code: 32)",
       leadId: initialDocument?.leadId,
       leadNumber: initialDocument?.leadNumber,
       recipientName: initialDocument?.recipientName || "",
-      recipientOrg: initialDocument?.recipientOrg || "CONFEDERATION OF RENEWABLE ENERGY",
-      recipientAddress: initialDocument?.recipientAddress || "1st Floor, Building No. 5/211, City Palace Building\nKalamassery, Ernakulam, Kerala - 683104",
-      recipientGstin: initialDocument?.recipientGstin || "32AAEAC6254D1Z7",
-      subject: initialDocument?.subject || "Proforma Invoice for Robotics Showcase & Demonstration",
-      bodyText: "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.",
-      items: [
-        {
-          id: "item_1",
-          description: "50% Advance Booking - Unitree G1 Live Showcase & Demonstration (3-Day Expo)",
-          sacCode: "998313",
-          qty: 1,
-          unit: "Scope",
-          price: 80000,
-          discountPercent: 0,
-          amount: 80000,
-        },
-      ],
-      tableMode: "summary",
-      qtyColumnLabel: "SCOPE",
+      recipientOrg: initialDocument?.recipientOrg || "",
+      recipientAddress: initialDocument?.recipientAddress || "",
+      recipientGstin: initialDocument?.recipientGstin || "",
+      subject: initialDocument?.subject || (defaultType === "QUOTATION" ? "SUBJECT: Commercial Proposal & Quote for Robotics Setup" : "SUBJECT: Final Tax Invoice"),
+      bodyText: initialDocument?.bodyText || (defaultType === "QUOTATION" ? "Thank you for your interest in Robuverse. LLP. Please find below our official commercial quotation for your review." : "Official GST Tax Invoice for equipment deployment and technical services rendered."),
+      items: initialItems,
+      tableMode: "tax_invoice",
+      qtyColumnLabel: "DAYS",
       gstMode: "calculated",
       gstType: "intrastate",
-      taxRate: 18,
-      subtotal: 80000,
-      discountTotal: 0,
-      taxAmount: 14400,
-      cgstAmount: 7200,
-      sgstAmount: 7200,
-      igstAmount: 0,
-      grandTotal: 94400,
-      amountInWords: "Rupees Ninety Four Thousand Four Hundred Only",
-      validityNotes: "Proforma Invoice valid for payment within 7 days of issue date.\nOfficial GST Tax Invoice will be issued upon receipt of payment.",
+      taxRate: initialTaxRate,
+      customSubtotal: initialCustomSubtotal,
+      ...initialTotals,
+      paymentTerms: initialDocument?.paymentTerms || ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch",
+      validityNotes: initialDocument?.validityNotes || (defaultIsGst
+        ? ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)"
+        : ". Official Non-GST Bill of Supply / Cash Memo."),
       signatoryName: settings.signatories[0]?.name || "Mithlaj MT.",
       signatoryTitle: settings.signatories[0]?.title || "Co-Founder & CTO",
       showSeal: true,
       showSignature: true,
       showWatermark: true,
       showRecipientSection: true,
+      showCompanyGst: defaultIsGst,
+      showBankDetails: initialDocument?.showBankDetails !== undefined ? initialDocument.showBankDetails : (defaultType !== "QUOTATION"),
       bankAccountId: settings.bankAccounts[0]?.id || "bank_federal_nihal",
       status: "ISSUED",
       createdAt: new Date().toISOString(),
@@ -85,29 +106,80 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
     onPreviewUpdate(doc);
   }, [doc, onPreviewUpdate]);
 
-  const handleDocTypeChange = (type: DocType) => {
-    const newRef = DocumentStorageService.getNextDocNumber(type);
+  const handleGstToggle = async (isGst: boolean) => {
+    const newType = isGst ? (doc.docType === "NON_GST_INVOICE" ? "TAX_INVOICE" : doc.docType) : (doc.docType === "TAX_INVOICE" ? "NON_GST_INVOICE" : doc.docType);
+    const newRef = await getNextDocNumberAction(newType, isGst);
+    
+    const newTaxRate = isGst ? 18 : 0;
+    const totals = calculateDocumentTotals(
+      doc.items,
+      newTaxRate,
+      doc.gstMode,
+      doc.gstType,
+      isGst ? "show" : "hide",
+      isGst ? "full_breakdown" : "no_tax_grand_total"
+    );
+
+    setDoc((prev) => ({
+      ...prev,
+      isGstBill: isGst,
+      docType: newType,
+      docNumber: newRef,
+      refNo: newRef,
+      taxRate: newTaxRate,
+      showCompanyGst: isGst,
+      docSubtitle: isGst
+        ? (newType === "TAX_INVOICE" ? "OFFICIAL GST TAX INVOICE - ROBOTICS EXPO SHOWCASE" : prev.docSubtitle)
+        : "OFFICIAL BILL OF SUPPLY - NON-GST",
+      validityNotes: isGst
+        ? ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Supplier GSTIN: 32ABOFR0193C1ZE\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)\n. SAC Code: 997319 (Renting/leasing of robots and other machinery/equipment)"
+        : ". Official Non-GST Bill of Supply / Cash Memo.\n. Includes dedicated robotics engineers, on-site setup, and live demonstrations.",
+      ...totals,
+    }));
+  };
+
+  const handleDocTypeChange = async (type: DocType) => {
+    const isGst = type !== "NON_GST_INVOICE" && doc.isGstBill !== false;
+    const newRef = await getNextDocNumberAction(type, isGst);
+    
     const subtitleMap: Record<DocType, string> = {
       QUOTATION: "OFFICIAL COMMERCIAL QUOTATION",
       PROFORMA: "PROFORMA INVOICE FOR PAYMENT ADVANCE",
-      TAX_INVOICE: "OFFICIAL GST TAX INVOICE",
+      TAX_INVOICE: "OFFICIAL GST TAX INVOICE - ROBOTICS EXPO SHOWCASE",
+      NON_GST_INVOICE: "OFFICIAL BILL OF SUPPLY - NON-GST",
       LETTERHEAD: "OFFICIAL COMPANY CORRESPONDENCE",
       CERTIFICATE: "COMPLETION CERTIFICATE",
     };
+
+    const subjectMap: Record<DocType, string> = {
+      QUOTATION: "SUBJECT: Commercial Proposal & Quote for Robotics Setup",
+      PROFORMA: "SUBJECT: Proforma Invoice for 50% Advance Booking Deposit",
+      TAX_INVOICE: "SUBJECT: Final Tax Invoice for Unitree G1 Robotics Showcase & Demonstration (3-Day Expo)",
+      NON_GST_INVOICE: "SUBJECT: Bill of Supply / Non-GST Invoice for Robotics Equipment & Services",
+      LETTERHEAD: "SUBJECT: Official Company Notice & Announcement",
+      CERTIFICATE: "SUBJECT: Certificate of Completion",
+    };
+
     const defaultBodyMap: Record<DocType, string> = {
-      QUOTATION: "Thank you for your interest in Robuverse. LLP. Please find below our official commercial quotation for your review.",
-      PROFORMA: "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.",
-      TAX_INVOICE: "Thank you for your business. Please find below our official Tax Invoice for the equipment deployment and technical services rendered.",
+      QUOTATION: "We are pleased to submit our official commercial quotation for your review.",
+      PROFORMA: "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation.",
+      TAX_INVOICE: "Official GST Tax Invoice for deployment, live showcase, and technical operation of Unitree G1 robotics systems for 3-day expo/event. Issued against Proforma Invoice Ref: RBV/PI/2026/170 (50% Advance) & Ref: RBV/PI/2026/170-B (50% Balance).",
+      NON_GST_INVOICE: "Official non-tax bill of supply for equipment deployment and technical services rendered.",
       LETTERHEAD: "Please find below our official company announcement and technical notice.",
       CERTIFICATE: "This is to certify the completion of practical training and workshop requirements.",
     };
+
     setDoc((prev) => ({
       ...prev,
       docType: type,
+      isGstBill: isGst,
       docSubtitle: subtitleMap[type] || prev.docSubtitle,
+      subject: subjectMap[type] || prev.subject,
       bodyText: defaultBodyMap[type] || prev.bodyText,
       docNumber: newRef,
       refNo: newRef,
+      piReference: type === "QUOTATION" || type === "NON_GST_INVOICE" ? "" : prev.piReference,
+      showBankDetails: type === "QUOTATION" ? false : true,
     }));
   };
 
@@ -128,7 +200,8 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
     newGstType = doc.gstType,
     newTaxRate = doc.taxRate,
     newShowGstDetails = doc.showGstDetails,
-    newTotalDisplayMode = doc.totalDisplayMode
+    newTotalDisplayMode = doc.totalDisplayMode,
+    newCustomSubtotal = doc.customSubtotal
   ) => {
     const totals = calculateDocumentTotals(
       newItems,
@@ -136,7 +209,8 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
       doc.gstMode,
       newGstType,
       newShowGstDetails,
-      newTotalDisplayMode
+      newTotalDisplayMode,
+      newCustomSubtotal
     );
     setDoc((prev) => ({
       ...prev,
@@ -145,6 +219,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
       taxRate: newTaxRate,
       showGstDetails: newShowGstDetails,
       totalDisplayMode: newTotalDisplayMode,
+      customSubtotal: newCustomSubtotal,
       ...totals,
     }));
   };
@@ -251,14 +326,113 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
     updateItemsAndTotals(doc.items.filter((_, i) => i !== index));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleLoadSampleInvoice = () => {
+    const sampleDoc: BusinessDocument = {
+      id: "",
+      docType: "TAX_INVOICE",
+      isGstBill: true,
+      docSubtitle: "OFFICIAL GST TAX INVOICE - ROBOTICS EXPO SHOWCASE",
+      docNumber: "RBV/INV/2026/201",
+      date: "2026-09-14",
+      dueDate: "2026-09-21",
+      refNo: "RBV/INV/2026/201",
+      piReference: "Settled against Proforma Invoices: RBV/PI/2026/170 & RBV/PI/2026/170-B",
+      placeOfSupply: "Kerala (State Code: 32)",
+      recipientName: "",
+      recipientOrg: "CONFEDERATION OF RENEWABLE ENERGY",
+      recipientAddress: "1st Floor, Building No. 5/211, City Palace Building\nEloor Road, Opp. Jothir Bhavan, North Kalamassery\nKalamassery, Ernakulam, Kerala - 683104",
+      recipientGstin: "32AAEAC6254D1Z7",
+      subject: "Final Tax Invoice for Unitree G1 Robotics Showcase & Demonstration (3-Day Expo)",
+      bodyText: "Official GST Tax Invoice for deployment, live showcase, and technical operation of Unitree G1 robotics systems for 3-day expo/event. Issued against Proforma Invoice Ref: RBV/PI/2026/170 (50% Advance) & Ref: RBV/PI/2026/170-B (50% Balance).",
+      items: [
+        {
+          id: "item_sample_1",
+          description: "Unitree G1 Live Showcase & Demonstration (3-Day Expo Complete Package)",
+          sacCode: "997319",
+          qty: 3,
+          unit: "Days",
+          price: 53333.3333,
+          discountPercent: 0,
+          amount: 160000,
+        },
+      ],
+      tableMode: "tax_invoice",
+      colHeaderItem: "ITEM & SERVICE DESCRIPTION",
+      colHeaderSac: "SAC CODE",
+      colHeaderQty: "DAYS",
+      colHeaderAmount: "TAXABLE VALUE",
+      showSacCode: true,
+      showQtyColumn: true,
+      qtyColumnLabel: "DAYS",
+      gstMode: "calculated",
+      gstType: "intrastate",
+      taxRate: 18,
+      subtotal: 160000,
+      discountTotal: 0,
+      taxAmount: 28800,
+      cgstAmount: 14400,
+      sgstAmount: 14400,
+      igstAmount: 0,
+      grandTotal: 188800,
+      amountInWords: "Rupees One Lakh Eighty-Eight Thousand Eight Hundred Only",
+      advanceReceived: 94400,
+      balanceDue: 94400,
+      validityNotes: ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Supplier GSTIN: 32ABOFR0193C1ZE | Recipient GSTIN: 32AAEAC6254D1Z7\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)\n. SAC Code: 997319 (Renting/leasing of robots and other machinery/equipment (without operator))\n. Includes dedicated robotics engineers, on-site setup, and live demonstrations for 3 days.",
+      signatoryName: settings.signatories[0]?.name || "Mithlaj MT.",
+      signatoryTitle: settings.signatories[0]?.title || "Co-Founder & CTO",
+      showSeal: true,
+      showSignature: true,
+      showWatermark: true,
+      showRecipientSection: true,
+      showCompanyGst: true,
+      bankAccountId: settings.bankAccounts[0]?.id || "bank_federal_nihal",
+      status: "ISSUED",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setDoc(sampleDoc);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const saved = DocumentStorageService.saveDocument(doc);
-    onSaveSuccess(saved);
+    setIsSaving(true);
+    try {
+      const res = await saveDocumentAction(doc);
+      if (res.success && res.document) {
+        DocumentStorageService.saveDocument(doc);
+        onSaveSuccess(res.document);
+      } else {
+        const saved = DocumentStorageService.saveDocument(doc);
+        onSaveSuccess(saved);
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      const saved = DocumentStorageService.saveDocument(doc);
+      onSaveSuccess(saved);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
+      {/* Sample Invoice Banner Button */}
+      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-900 via-indigo-850 to-blue-900 text-white rounded-2xl shadow-md border border-indigo-700/50">
+        <div className="flex items-center space-x-2 text-xs">
+          <span className="text-base">💎</span>
+          <div>
+            <span className="font-extrabold text-amber-300">Preset Sample Invoice:</span>{" "}
+            <span className="text-slate-200">CONFEDERATION OF RENEWABLE ENERGY (RBV/INV/2026/201)</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleLoadSampleInvoice}
+          className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-3 py-1.5 rounded-xl text-xs transition-all shadow-sm cursor-pointer"
+        >
+          ⚡ Load Shared Invoice
+        </button>
+      </div>
       {/* Step Indicator Tabs */}
       <div className="grid grid-cols-4 gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs">
         {[
@@ -286,16 +460,57 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
       {/* STEP 1: Document Type & Reference Details */}
       {activeStep === 1 && (
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-5 animate-fade-in">
+          {/* GST vs NON-GST BILL TOGGLE CARD */}
+          <div className="p-4 bg-gradient-to-r from-indigo-50/80 via-slate-50 to-blue-50/80 border border-indigo-200/80 rounded-2xl space-y-2 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-extrabold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🏛️</span> Tax Billing Mode
+                </h4>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                  {doc.isGstBill !== false
+                    ? "GST Tax Invoice: Includes 18% GST breakdown, HSN/SAC codes, Supplier & Recipient GSTIN."
+                    : "Non-GST Bill of Supply / Cash Memo: Hides tax calculations & GSTIN requirements."}
+                </p>
+              </div>
+
+              <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200/90 shadow-2xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleGstToggle(true)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    doc.isGstBill !== false
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  🏢 GST Tax Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGstToggle(false)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    doc.isGstBill === false
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  📄 Non-GST Bill
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div>
             <h3 className="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
               <span>📑</span> Select Document Type
             </h3>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { type: "PROFORMA", label: "Proforma Invoice", desc: "For requesting advance payment" },
-                { type: "TAX_INVOICE", label: "GST Tax Invoice", desc: "Official GST tax invoice after payment" },
-                { type: "QUOTATION", label: "Commercial Quotation", desc: "Price proposal for potential clients" },
-                { type: "LETTERHEAD", label: "Official Letterhead", desc: "Company notice, announcement, or memo" },
+                { type: "TAX_INVOICE", label: "GST Tax Invoice (Ref 201+)", desc: "Official GST tax invoice (RBV/INV/2026/201)" },
+                { type: "NON_GST_INVOICE", label: "Non-GST Bill (Ref 101+)", desc: "Official Non-GST bill of supply (RBV/BILL/2026/101)" },
+                { type: "PROFORMA", label: "Proforma Invoice (Ref 170+)", desc: "Advance deposit PI (RBV/PI/2026/170)" },
+                { type: "QUOTATION", label: "Commercial Quotation", desc: "Official commercial proposal (RBV/QTN/2026/101)" },
               ].map((t) => (
                 <button
                   key={t.type}
@@ -346,15 +561,27 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             </div>
           </div>
 
-          <div className="text-xs">
-            <label className="block text-slate-600 mb-1 font-bold">Document Subtitle / Banner Text</label>
-            <input
-              type="text"
-              placeholder="e.g. 50% ADVANCE PAYMENT - ROBOTICS EXPO SHOWCASE"
-              value={doc.docSubtitle || ""}
-              onChange={(e) => setDoc({ ...doc, docSubtitle: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="block text-slate-600 mb-1 font-bold">Document Subtitle / Banner Text</label>
+              <input
+                type="text"
+                placeholder="e.g. 50% ADVANCE PAYMENT - ROBOTICS EXPO SHOWCASE"
+                value={doc.docSubtitle || ""}
+                onChange={(e) => setDoc({ ...doc, docSubtitle: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-600 mb-1 font-bold">Against PI Ref / Linked Ref (Optional)</label>
+              <input
+                type="text"
+                placeholder="Leave blank for new Quotations / Invoices"
+                value={doc.piReference || ""}
+                onChange={(e) => setDoc({ ...doc, piReference: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
+              />
+            </div>
           </div>
 
           {/* Dynamic Advance Payment % Tool for Proforma Invoices */}
@@ -548,16 +775,37 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
             <div>
               <label className="block text-slate-500 mb-1 font-bold">Client / Organization Name *</label>
               <input
                 type="text"
                 required
-                placeholder="CONFEDERATION OF RENEWABLE ENERGY"
+                placeholder="BHARATHEEYA VIDYA NIKETHAN"
                 value={doc.recipientOrg}
                 onChange={(e) => setDoc({ ...doc, recipientOrg: e.target.value })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-slate-500 font-bold">Attention To / Contact Person</label>
+                {doc.recipientName && (
+                  <button
+                    type="button"
+                    onClick={() => setDoc({ ...doc, recipientName: "" })}
+                    className="text-[10px] text-rose-600 hover:underline font-bold cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. Vipin Sir (Optional)"
+                value={doc.recipientName || ""}
+                onChange={(e) => setDoc({ ...doc, recipientName: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
@@ -740,7 +988,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     <input
                       type="text"
                       readOnly
-                      value={item.amount.toFixed(2)}
+                      value={(Number(item.amount) || 0).toFixed(2)}
                       className="w-full bg-slate-100 border border-slate-200/80 rounded-lg p-1.5 font-mono font-bold text-emerald-700 cursor-not-allowed"
                     />
                   </div>
@@ -863,11 +1111,21 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 />
                 <span className="text-slate-700 font-semibold">Show Quantity / Scope Column</span>
               </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer bg-indigo-50/60 px-2.5 py-1 rounded-lg border border-indigo-200/60">
+                <input
+                  type="checkbox"
+                  checked={doc.showRowAmounts !== false}
+                  onChange={(e) => setDoc({ ...doc, showRowAmounts: e.target.checked })}
+                  className="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300"
+                />
+                <span className="text-indigo-950 font-bold">Show Row Prices in Table</span>
+              </label>
             </div>
           </div>
 
           {/* Tax Engine */}
-          <div className="grid grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 text-xs">
             <div>
               <label className="block text-slate-700 mb-1 font-semibold">GST Calculation Type</label>
               <select
@@ -886,6 +1144,19 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 value={doc.taxRate}
                 onChange={(e) => updateItemsAndTotals(doc.items, doc.gstType, parseFloat(e.target.value) || 0)}
                 className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 font-mono text-slate-900"
+              />
+            </div>
+            <div>
+              <label className="block text-indigo-950 font-extrabold mb-1">⚡ Package Subtotal Override (₹)</label>
+              <input
+                type="number"
+                placeholder="e.g. 150000 (Subtotal before GST)"
+                value={doc.customSubtotal || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || undefined;
+                  updateItemsAndTotals(doc.items, doc.gstType, doc.taxRate, doc.showGstDetails, doc.totalDisplayMode, val);
+                }}
+                className="w-full bg-white border border-indigo-300 rounded-xl p-2.5 font-mono text-indigo-900 font-extrabold focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -921,13 +1192,41 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             <span>🏦</span> Bank Profile & Signatory Auth
           </h3>
 
+          {/* Bank Details Toggle Banner */}
+          <div className="p-3 bg-gradient-to-r from-indigo-50/80 via-slate-50 to-blue-50/80 border border-indigo-200/80 rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <div className="font-extrabold text-indigo-950 flex items-center gap-1.5">
+                <span>🏦</span> Company Bank Account Details
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                {doc.showBankDetails !== false
+                  ? "Bank Details Box active (Renders Federal/HDFC Account details on PDF)"
+                  : "Bank Details hidden (Renders clean Payment Terms box on PDF instead)"}
+              </div>
+            </div>
+            <label className="flex items-center space-x-2 cursor-pointer bg-white border border-slate-200/80 px-3 py-1.5 rounded-lg shadow-2xs">
+              <input
+                type="checkbox"
+                checked={doc.showBankDetails !== false}
+                onChange={(e) => setDoc({ ...doc, showBankDetails: e.target.checked })}
+                className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
+              />
+              <span className="text-xs font-bold text-indigo-600">
+                {doc.showBankDetails !== false ? "Show Bank Details" : "Hide Bank Details"}
+              </span>
+            </label>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div>
               <label className="block text-slate-700 mb-1 font-semibold">Payment Bank Profile</label>
               <select
                 value={doc.bankAccountId}
                 onChange={(e) => setDoc({ ...doc, bankAccountId: e.target.value })}
-                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
+                disabled={doc.showBankDetails === false}
+                className={`w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500 ${
+                  doc.showBankDetails === false ? "opacity-50 cursor-not-allowed bg-slate-100" : ""
+                }`}
               >
                 {settings.bankAccounts.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -962,46 +1261,89 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
           </div>
 
           <div className="text-xs space-y-3">
+            {doc.showBankDetails !== false && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-indigo-700 font-semibold flex items-center gap-1.5">
+                    <span>💳</span> Bank Transfer Note (Editable Note under Bank Details)
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg text-[11px]">
+                    <input
+                      type="checkbox"
+                      checked={doc.showBankTransferNote !== false}
+                      onChange={(e) => setDoc({ ...doc, showBankTransferNote: e.target.checked })}
+                      className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 text-xs"
+                    />
+                    <span className={doc.showBankTransferNote !== false ? "text-indigo-700 font-bold" : "text-slate-500"}>
+                      {doc.showBankTransferNote !== false ? "Visible on Document" : "Hidden on Document"}
+                    </span>
+                  </label>
+                </div>
+                {doc.showBankTransferNote !== false && (
+                  <input
+                    type="text"
+                    placeholder="Note: Beneficiary Designated Account for Robuverse LLP transfers"
+                    value={
+                      doc.bankAccountNote !== undefined
+                        ? doc.bankAccountNote
+                        : (settings.bankAccounts.find((b) => b.id === doc.bankAccountId) || settings.bankAccounts[0])?.note ||
+                          "Beneficiary Designated Account for Robuverse LLP transfers"
+                    }
+                    onChange={(e) => setDoc({ ...doc, bankAccountNote: e.target.value })}
+                    className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                )}
+              </div>
+            )}
+
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-indigo-700 font-semibold flex items-center gap-1.5">
-                  <span>💳</span> Bank Transfer Note (Editable Note under Bank Details)
+                <label className="block text-slate-700 font-bold">
+                  📋 Payment Terms (Renders in Left Box when Bank Details are Hidden or combined)
                 </label>
-                <label className="flex items-center space-x-1.5 cursor-pointer bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg text-[11px]">
-                  <input
-                    type="checkbox"
-                    checked={doc.showBankTransferNote !== false}
-                    onChange={(e) => setDoc({ ...doc, showBankTransferNote: e.target.checked })}
-                    className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 text-xs"
-                  />
-                  <span className={doc.showBankTransferNote !== false ? "text-indigo-700 font-bold" : "text-slate-500"}>
-                    {doc.showBankTransferNote !== false ? "Visible on Document" : "Hidden on Document"}
-                  </span>
-                </label>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDoc((prev) => ({
+                        ...prev,
+                        paymentTerms: ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch",
+                      }))
+                    }
+                    className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg font-bold border border-indigo-200 cursor-pointer"
+                  >
+                    ⚡ 50/30/20 Stage Payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDoc((prev) => ({
+                        ...prev,
+                        paymentTerms: ". 50% advance booking deposit upon confirmation\n. 50% balance before dispatch & deployment",
+                      }))
+                    }
+                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-lg font-bold border border-slate-200 cursor-pointer"
+                  >
+                    ⚡ 50/50 Advance
+                  </button>
+                </div>
               </div>
-              {doc.showBankTransferNote !== false && (
-                <input
-                  type="text"
-                  placeholder="Note: Beneficiary Designated Account for Robuverse LLP transfers"
-                  value={
-                    doc.bankAccountNote !== undefined
-                      ? doc.bankAccountNote
-                      : (settings.bankAccounts.find((b) => b.id === doc.bankAccountId) || settings.bankAccounts[0])?.note ||
-                        "Beneficiary Designated Account for Robuverse LLP transfers"
-                  }
-                  onChange={(e) => setDoc({ ...doc, bankAccountNote: e.target.value })}
-                  className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500 mt-1"
-                />
-              )}
+              <textarea
+                rows={3}
+                placeholder=". 50% advance on confirmation of order&#10;. 30% on equipment delivery & installation&#10;. 20% on handover & launch"
+                value={doc.paymentTerms || ""}
+                onChange={(e) => setDoc({ ...doc, paymentTerms: e.target.value })}
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 font-medium text-xs leading-relaxed"
+              />
             </div>
 
             <div>
-              <label className="block text-slate-700 mb-1 font-semibold">Validity Notes & Payment Terms</label>
+              <label className="block text-slate-700 mb-1 font-bold">Validity & Notes (Renders in Right Box on PDF)</label>
               <textarea
-                rows={3}
+                rows={4}
                 value={doc.validityNotes || ""}
                 onChange={(e) => setDoc({ ...doc, validityNotes: e.target.value })}
-                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 font-medium text-xs leading-relaxed"
               />
             </div>
           </div>

@@ -1,4 +1,4 @@
-export type DocType = "QUOTATION" | "PROFORMA" | "TAX_INVOICE" | "LETTERHEAD" | "CERTIFICATE";
+export type DocType = "QUOTATION" | "PROFORMA" | "TAX_INVOICE" | "NON_GST_INVOICE" | "LETTERHEAD" | "CERTIFICATE";
 
 export type DocStatus = "DRAFT" | "ISSUED" | "PAID" | "CANCELLED";
 
@@ -83,17 +83,19 @@ export interface DocumentItem {
 export interface BusinessDocument {
   id: string;
   docType: DocType;
+  isGstBill?: boolean;
   docSubtitle?: string;
   docNumber: string;
   date: string;
   dueDate?: string;
   refNo?: string;
   piReference?: string;
+  placeOfSupply?: string;
   leadId?: string;
   leadNumber?: string;
   
   // Client details
-  recipientName: string;
+  recipientName?: string;
   recipientOrg: string;
   recipientAddress: string;
   recipientGstin?: string;
@@ -121,6 +123,8 @@ export interface BusinessDocument {
   amountInWords?: string;
 
   // Notes & Signatory
+  advanceReceived?: number;
+  balanceDue?: number;
   paymentTerms?: string;
   validityNotes?: string;
   closingText?: string;
@@ -134,6 +138,7 @@ export interface BusinessDocument {
   showRecipientSection?: boolean;
   showCompanyGst?: boolean;
   showBankTransferNote?: boolean;
+  showBankDetails?: boolean;
   // Custom Table Column Headings & Visibility Toggles
   colHeaderItem?: string;
   colHeaderSac?: string;
@@ -143,6 +148,8 @@ export interface BusinessDocument {
   showQtyColumn?: boolean;
   showRateColumn?: boolean;
   showSacCode?: boolean;
+  showRowAmounts?: boolean;
+  customSubtotal?: number;
   
   // Total / GST Display Customization
   totalDisplayMode?: "full_breakdown" | "total_only" | "subtotal_plus_tax" | "no_tax_grand_total";

@@ -321,6 +321,26 @@ model Document {
   grandTotal           Decimal        @db.Decimal(14, 2)
   amountInWords        String?
   
+  // Table Schema & Column Customization
+  tableMode            String?        @default("tax_invoice")
+  qtyColumnLabel       String?
+  colHeaderItem        String?
+  colHeaderSac         String?
+  colHeaderQty         String?
+  colHeaderRate        String?
+  colHeaderAmount      String?
+  showSacCode          Boolean        @default(true)
+  showQtyColumn        Boolean        @default(true)
+  showRateColumn       Boolean        @default(true)
+  showRowAmounts       Boolean        @default(true)
+
+  // Total & Tax Display Modes
+  totalDisplayMode     String?        @default("full_breakdown")
+  showGstDetails       String?        @default("show")
+  customSubtotal       Decimal?       @db.Decimal(14, 2)
+  advancePercent       Decimal?       @db.Decimal(5, 2)
+  totalContractValue   Decimal?       @db.Decimal(14, 2)
+
   // Payment Breakdown & Notes
   advanceReceived      Decimal        @default(0) @db.Decimal(14, 2)
   balanceDue           Decimal        @default(0) @db.Decimal(14, 2)
@@ -330,6 +350,7 @@ model Document {
   signatoryName        String         @default("Mithlaj MT.")
   signatoryTitle       String         @default("Co-Founder & CTO")
   bankAccountId        String?        @default("bank_federal_nihal")
+  bankAccountNote      String?
   
   // Display Toggles
   showSeal             Boolean        @default(true)
@@ -337,7 +358,14 @@ model Document {
   showWatermark        Boolean        @default(true)
   showRecipientSection Boolean        @default(true)
   showCompanyGst       Boolean        @default(true)
+  showBankDetails      Boolean        @default(true)
   showBankTransferNote Boolean        @default(true)
+  showTerms            Boolean        @default(true)
+  showValidity         Boolean        @default(true)
+  showFooter           Boolean        @default(true)
+
+  // Arbitrary Extensible Metadata
+  metadata             Json?
   
   // Items relation
   items                DocumentItem[]

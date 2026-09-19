@@ -176,6 +176,7 @@ function DocumentsStudioContent() {
               </button>
             </div>
             <DocumentForm
+              key={editingDoc?.id || "new"}
               initialDocument={editingDoc}
               settings={settings}
               onSaveSuccess={handleSaveSuccess}
@@ -204,6 +205,7 @@ function DocumentsStudioContent() {
         <DocumentHistory
           onEditDocument={handleEditDocument}
           onViewDocument={handleViewDocument}
+          settings={settings}
         />
       )}
 

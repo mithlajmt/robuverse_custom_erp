@@ -1,20 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BusinessDocument, DocType } from "@/types/document";
+import { BusinessDocument, DocType, CompanySettings } from "@/types/document";
 import { DocumentStorageService } from "@/lib/storage/documentStorage";
 import { formatCurrency } from "@/lib/utils/currency";
-import { getDocumentsAction, deleteDocumentAction } from "@/lib/actions/documents";
+import { getDocumentsAction, deleteDocumentAction, duplicateDocumentAction } from "@/lib/actions/documents";
+import DocumentPreview from "@/components/documents/DocumentPreview";
+import { X, Copy, Eye, Edit3, Trash2, Search, Filter } from "lucide-react";
 
 interface DocumentHistoryProps {
   onEditDocument: (doc: BusinessDocument) => void;
   onViewDocument: (doc: BusinessDocument) => void;
+  settings?: CompanySettings;
 }
 
-export default function DocumentHistory({ onEditDocument, onViewDocument }: DocumentHistoryProps) {
+export default function DocumentHistory({ onEditDocument, onViewDocument, settings }: DocumentHistoryProps) {
   const [documents, setDocuments] = useState<BusinessDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("ALL");
+  const [previewModalDoc, setPreviewModalDoc] = useState<BusinessDocument | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
+
+  const activeSettings = settings || DocumentStorageService.getSettings();
 
   useEffect(() => {
     loadDocuments();
@@ -34,7 +41,7 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this document?")) {
+    if (confirm("Are you sure you want to delete this document from the database?")) {
       try {
         await deleteDocumentAction(id);
       } catch (e) {
@@ -42,6 +49,24 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
       }
       DocumentStorageService.deleteDocument(id);
       loadDocuments();
+      if (previewModalDoc?.id === id) setPreviewModalDoc(null);
+    }
+  };
+
+  const handleDuplicate = async (doc: BusinessDocument) => {
+    setIsDuplicating(doc.id);
+    try {
+      const res = await duplicateDocumentAction(doc.id);
+      if (res.success && res.document) {
+        alert(`Document duplicated successfully as ${res.document.docNumber}! Opening editor...`);
+        await loadDocuments();
+        onEditDocument(res.document);
+      }
+    } catch (err) {
+      console.error("Duplicate error:", err);
+      alert("Failed to duplicate document. Please try again.");
+    } finally {
+      setIsDuplicating(null);
     }
   };
 
@@ -84,7 +109,7 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
             <span>📋</span> Company Document Repository
           </h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
-            Search, manage, convert, and export company Tax Invoices, Proforma Invoices, Quotations, and Letterheads.
+            Search, manage, convert, and preview GST Invoices, Proforma Invoices, Quotations, and Non-GST Bills with 100% fidelity.
           </p>
         </div>
       </div>
@@ -92,12 +117,10 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
       {/* Filters & Search */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex items-center space-x-3 w-full md:w-auto">
-          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             type="text"
-            placeholder="Search by Ref # or Client Organization..."
+            placeholder="Search by Ref #, Client Org, or Contact..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-transparent border-none text-xs text-slate-900 placeholder-slate-400 focus:outline-none w-full md:w-80 font-medium"
@@ -105,7 +128,7 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
         </div>
 
         <div className="flex items-center space-x-1.5 overflow-x-auto w-full md:w-auto">
-          {["ALL", "PROFORMA", "TAX_INVOICE", "QUOTATION", "LETTERHEAD"].map((type) => (
+          {["ALL", "TAX_INVOICE", "NON_GST_INVOICE", "PROFORMA", "QUOTATION", "LETTERHEAD"].map((type) => (
             <button
               key={type}
               onClick={() => setSelectedType(type)}
@@ -115,7 +138,11 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
                   : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              {type.replace("_", " ")}
+              {type === "TAX_INVOICE"
+                ? "GST Invoice"
+                : type === "NON_GST_INVOICE"
+                ? "Non-GST Bill"
+                : type.replace("_", " ")}
             </button>
           ))}
         </div>
@@ -129,12 +156,13 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
         </div>
       ) : (
         <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-          <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+          <table className="w-full text-left text-xs border-collapse min-w-[750px]">
             <thead className="bg-slate-50/70 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200/80">
               <tr>
                 <th className="p-4">Ref Number & Type</th>
+                <th className="p-4">Billing Mode</th>
                 <th className="p-4">Recipient / Client</th>
-                <th className="p-4">Date</th>
+                <th className="p-4">Issue Date</th>
                 <th className="p-4">Grand Total (₹)</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-right">Actions</th>
@@ -146,6 +174,17 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
                   <td className="p-4">
                     <p className="font-mono font-extrabold text-indigo-700">{doc.docNumber}</p>
                     <span className="text-[10px] font-bold text-slate-500">{doc.docType.replace("_", " ")}</span>
+                  </td>
+                  <td className="p-4">
+                    {doc.isGstBill !== false && doc.docType !== "NON_GST_INVOICE" ? (
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-[9.5px] px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        GST Bill
+                      </span>
+                    ) : (
+                      <span className="bg-amber-50 text-amber-700 border border-amber-200 font-extrabold text-[9.5px] px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        Non-GST
+                      </span>
+                    )}
                   </td>
                   <td className="p-4">
                     <p className="font-extrabold text-slate-900">{doc.recipientOrg}</p>
@@ -170,50 +209,128 @@ export default function DocumentHistory({ onEditDocument, onViewDocument }: Docu
                       {doc.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 text-right space-x-1.5">
                     {/* One-Click Conversion Buttons */}
                     {doc.docType === "QUOTATION" && (
                       <button
                         onClick={() => handleConvert(doc.id, "PROFORMA")}
-                        className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-extrabold hover:bg-amber-100 transition cursor-pointer"
+                        className="px-2 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-extrabold hover:bg-amber-100 transition cursor-pointer"
                         title="Convert Quotation to Proforma Invoice"
                       >
-                        ⚡ Convert to PI
+                        ⚡ To PI
                       </button>
                     )}
                     {doc.docType === "PROFORMA" && (
                       <button
                         onClick={() => handleConvert(doc.id, "TAX_INVOICE")}
-                        className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold hover:bg-emerald-100 transition cursor-pointer"
+                        className="px-2 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-extrabold hover:bg-emerald-100 transition cursor-pointer"
                         title="Convert PI to Tax Invoice"
                       >
-                        ⚡ Convert to Invoice
+                        ⚡ To Tax Inv
                       </button>
                     )}
 
+                    {/* Instant Preview Modal Button */}
                     <button
-                      onClick={() => onViewDocument(doc)}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition cursor-pointer"
+                      onClick={() => setPreviewModalDoc(doc)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition cursor-pointer"
+                      title="Quick Preview / Print / PDF"
                     >
-                      View / PDF
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View</span>
                     </button>
+
+                    {/* Duplicate Action Button */}
+                    <button
+                      onClick={() => handleDuplicate(doc)}
+                      disabled={isDuplicating === doc.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs transition cursor-pointer"
+                      title="Duplicate Document into new draft"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{isDuplicating === doc.id ? "..." : "Copy"}</span>
+                    </button>
+
+                    {/* Edit Button */}
                     <button
                       onClick={() => onEditDocument(doc)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                      title="Edit in Document Studio"
                     >
-                      Edit
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
                     </button>
+
+                    {/* Delete Button */}
                     <button
                       onClick={() => handleDelete(doc.id)}
-                      className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition cursor-pointer"
+                      className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition cursor-pointer"
+                      title="Delete document"
                     >
-                      Delete
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* QUICK PREVIEW POPUP MODAL */}
+      {previewModalDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Header Bar */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
+              <div className="flex items-center space-x-3">
+                <span className="font-mono font-extrabold text-indigo-700 text-base">
+                  {previewModalDoc.docNumber}
+                </span>
+                <span className="text-slate-300">|</span>
+                <span className="text-xs font-bold text-slate-700">
+                  {previewModalDoc.recipientOrg}
+                </span>
+                {previewModalDoc.isGstBill !== false ? (
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-extrabold text-[9px] px-2 py-0.5 rounded uppercase">
+                    GST Bill
+                  </span>
+                ) : (
+                  <span className="bg-amber-50 text-amber-700 border border-amber-200 font-extrabold text-[9px] px-2 py-0.5 rounded uppercase">
+                    Non-GST
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    const d = previewModalDoc;
+                    setPreviewModalDoc(null);
+                    onEditDocument(d);
+                  }}
+                  className="flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Open in Editor</span>
+                </button>
+                <button
+                  onClick={() => setPreviewModalDoc(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-500 transition cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body Preview */}
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-100/60 flex justify-center">
+              <div className="w-full max-w-[210mm]">
+                <DocumentPreview document={previewModalDoc} settings={activeSettings} scale={0.78} />
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

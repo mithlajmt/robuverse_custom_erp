@@ -139,6 +139,9 @@ export interface BusinessDocument {
   showCompanyGst?: boolean;
   showBankTransferNote?: boolean;
   showBankDetails?: boolean;
+  showTerms?: boolean;
+  showValidity?: boolean;
+  showFooter?: boolean;
   // Custom Table Column Headings & Visibility Toggles
   colHeaderItem?: string;
   colHeaderSac?: string;
@@ -161,6 +164,7 @@ export interface BusinessDocument {
   bankAccountDetails?: BankAccount;
   advancePercent?: number;
   totalContractValue?: number;
+  metadata?: any;
   status: DocStatus;
   createdAt: string;
   updatedAt: string;

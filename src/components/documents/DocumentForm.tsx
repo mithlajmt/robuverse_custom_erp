@@ -13,89 +13,124 @@ interface DocumentFormProps {
   onPreviewUpdate: (doc: BusinessDocument) => void;
 }
 
+function buildInitialDoc(initialDocument?: Partial<BusinessDocument>, settings?: CompanySettings): BusinessDocument {
+  const defaultType: DocType = (initialDocument?.docType as DocType) || "TAX_INVOICE";
+  const defaultIsGst = initialDocument?.isGstBill !== undefined ? initialDocument.isGstBill : (defaultType !== "NON_GST_INVOICE");
+  const refNum = initialDocument?.docNumber || (defaultIsGst ? "RBV/INV/2026/201" : "RBV/BILL/2026/101");
+  
+  const initialItems = initialDocument?.items && initialDocument.items.length > 0 ? initialDocument.items : [
+    {
+      id: "item_1",
+      description: "Teacher Skill Development Program (AI & Robotics)",
+      sacCode: "999293",
+      qty: 3,
+      unit: "Days",
+      price: 0,
+      discountPercent: 0,
+      amount: 0,
+    },
+  ];
+
+  const initialTaxRate = initialDocument?.taxRate !== undefined ? Number(initialDocument.taxRate) : (defaultIsGst ? 18 : 0);
+  const initialCustomSubtotal = initialDocument?.customSubtotal;
+
+  const initialTotals = calculateDocumentTotals(
+    initialItems,
+    initialTaxRate,
+    initialDocument?.gstMode || "calculated",
+    initialDocument?.gstType || "intrastate",
+    initialDocument?.showGstDetails || (defaultIsGst ? "show" : "hide"),
+    initialDocument?.totalDisplayMode || (defaultIsGst ? "full_breakdown" : "no_tax_grand_total"),
+    initialCustomSubtotal
+  );
+
+  return {
+    id: initialDocument?.id || "",
+    docType: defaultType,
+    isGstBill: defaultIsGst,
+    docSubtitle: initialDocument?.docSubtitle !== undefined ? initialDocument.docSubtitle : (defaultIsGst ? "OFFICIAL GST TAX INVOICE" : "OFFICIAL BILL OF SUPPLY - NON-GST"),
+    docNumber: refNum,
+    date: initialDocument?.date || new Date().toISOString().split("T")[0],
+    dueDate: initialDocument?.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
+    refNo: initialDocument?.refNo || refNum,
+    piReference: initialDocument?.piReference || "",
+    placeOfSupply: initialDocument?.placeOfSupply || "Kerala (State Code: 32)",
+    leadId: initialDocument?.leadId,
+    leadNumber: initialDocument?.leadNumber,
+    recipientName: initialDocument?.recipientName || "",
+    recipientOrg: initialDocument?.recipientOrg || "",
+    recipientAddress: initialDocument?.recipientAddress || "",
+    recipientGstin: initialDocument?.recipientGstin || "",
+    subject: initialDocument?.subject !== undefined ? initialDocument.subject : (defaultType === "QUOTATION" ? "Commercial Proposal & Quote for Robotics Setup" : defaultType === "PROFORMA" ? "Proforma Invoice for 50% Advance Booking Deposit" : defaultIsGst ? "Final GST Tax Invoice" : "Bill of Supply / Non-GST Invoice"),
+    bodyText: initialDocument?.bodyText !== undefined ? initialDocument.bodyText : (defaultType === "QUOTATION" ? "We are pleased to submit our official commercial quotation for your review." : defaultType === "PROFORMA" ? "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation." : "Official GST Tax Invoice for equipment deployment and technical services rendered."),
+    items: initialItems,
+    tableMode: initialDocument?.tableMode || "tax_invoice",
+    qtyColumnLabel: initialDocument?.qtyColumnLabel || "DAYS",
+    colHeaderItem: initialDocument?.colHeaderItem || "ITEM & DESCRIPTION",
+    colHeaderSac: initialDocument?.colHeaderSac || "SAC CODE",
+    colHeaderQty: initialDocument?.colHeaderQty || initialDocument?.qtyColumnLabel || "QTY",
+    colHeaderRate: initialDocument?.colHeaderRate || "RATE (₹)",
+    colHeaderAmount: initialDocument?.colHeaderAmount || "AMOUNT",
+    showSacCode: initialDocument?.showSacCode !== undefined ? initialDocument.showSacCode : true,
+    showQtyColumn: initialDocument?.showQtyColumn !== undefined ? initialDocument.showQtyColumn : true,
+    showRateColumn: initialDocument?.showRateColumn !== undefined ? initialDocument.showRateColumn : false,
+    showRowAmounts: initialDocument?.showRowAmounts !== undefined ? initialDocument.showRowAmounts : true,
+    totalDisplayMode: initialDocument?.totalDisplayMode || (defaultIsGst ? "full_breakdown" : "no_tax_grand_total"),
+    showGstDetails: initialDocument?.showGstDetails || (defaultIsGst ? "show" : "hide"),
+    gstMode: initialDocument?.gstMode || "calculated",
+    gstType: initialDocument?.gstType || "intrastate",
+    taxRate: initialTaxRate,
+    customSubtotal: initialCustomSubtotal,
+    advancePercent: initialDocument?.advancePercent,
+    totalContractValue: initialDocument?.totalContractValue,
+    ...initialTotals,
+    advanceReceived: initialDocument?.advanceReceived || 0,
+    balanceDue: initialDocument?.balanceDue || 0,
+    paymentTerms: initialDocument?.paymentTerms !== undefined ? initialDocument.paymentTerms : (defaultType === "QUOTATION"
+      ? ". 50% advance on confirmation of purchase order\n. 50% upon delivery, installation & final commissioning"
+      : defaultType === "PROFORMA"
+      ? ". 50% advance booking deposit upon confirmation\n. 50% balance before dispatch & deployment"
+      : ". Full settlement as per contract agreement terms"),
+    validityNotes: initialDocument?.validityNotes !== undefined ? initialDocument.validityNotes : (defaultType === "QUOTATION"
+      ? ". Quote Validity: 30 days from date of issue.\n. Delivery & Deployment: Within 7 to 10 working days upon order confirmation.\n. Taxes & Statutory: GST @ 18% extra as applicable.\n. Warranty & Technical Support: 1 Year comprehensive technical coverage included."
+      : defaultType === "PROFORMA"
+      ? ". Proforma Invoice issued against confirmed booking order.\n. Advance payment locks in equipment reservation & engineer scheduling.\n. Statutory Tax Invoice will be issued upon delivery/service execution."
+      : defaultIsGst
+      ? ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)"
+      : ". Official Non-GST Bill of Supply / Cash Memo."),
+    signatoryName: initialDocument?.signatoryName || settings?.signatories[0]?.name || "Mithlaj MT.",
+    signatoryTitle: initialDocument?.signatoryTitle || settings?.signatories[0]?.title || "Co-Founder & CTO",
+    showSeal: initialDocument?.showSeal !== undefined ? initialDocument.showSeal : true,
+    showSignature: initialDocument?.showSignature !== undefined ? initialDocument.showSignature : true,
+    showWatermark: initialDocument?.showWatermark !== undefined ? initialDocument.showWatermark : true,
+    showRecipientSection: initialDocument?.showRecipientSection !== undefined ? initialDocument.showRecipientSection : true,
+    showCompanyGst: initialDocument?.showCompanyGst !== undefined ? initialDocument.showCompanyGst : defaultIsGst,
+    showBankDetails: initialDocument?.showBankDetails !== undefined ? initialDocument.showBankDetails : (defaultType !== "QUOTATION"),
+    showBankTransferNote: initialDocument?.showBankTransferNote !== undefined ? initialDocument.showBankTransferNote : true,
+    bankAccountId: initialDocument?.bankAccountId || settings?.bankAccounts[0]?.id || "bank_federal_nihal",
+    bankAccountNote: initialDocument?.bankAccountNote,
+    showTerms: initialDocument?.showTerms !== undefined ? initialDocument.showTerms : true,
+    showValidity: initialDocument?.showValidity !== undefined ? initialDocument.showValidity : true,
+    showFooter: initialDocument?.showFooter !== undefined ? initialDocument.showFooter : true,
+    status: initialDocument?.status || "ISSUED",
+    createdAt: initialDocument?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export default function DocumentForm({ initialDocument, settings, onSaveSuccess, onPreviewUpdate }: DocumentFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [doc, setDoc] = useState<BusinessDocument>(() => {
-    const defaultType: DocType = (initialDocument?.docType as DocType) || "TAX_INVOICE";
-    const defaultIsGst = initialDocument?.isGstBill !== undefined ? initialDocument.isGstBill : (defaultType !== "NON_GST_INVOICE");
-    const refNum = initialDocument?.docNumber || (defaultIsGst ? "RBV/INV/2026/201" : "RBV/BILL/2026/101");
-    
-    const initialItems = initialDocument?.items && initialDocument.items.length > 0 ? initialDocument.items : [
-      {
-        id: "item_1",
-        description: "Teacher Skill Development Program (AI & Robotics)",
-        sacCode: "999293",
-        qty: 3,
-        unit: "Days",
-        price: 0,
-        discountPercent: 0,
-        amount: 0,
-      },
-    ];
+  const [doc, setDoc] = useState<BusinessDocument>(() => buildInitialDoc(initialDocument, settings));
 
-    const initialTaxRate = defaultIsGst ? 18 : 0;
-    const initialCustomSubtotal = initialDocument?.customSubtotal;
-
-    const initialTotals = calculateDocumentTotals(
-      initialItems,
-      initialTaxRate,
-      "calculated",
-      "intrastate",
-      defaultIsGst ? "show" : "hide",
-      defaultIsGst ? "full_breakdown" : "no_tax_grand_total",
-      initialCustomSubtotal
-    );
-
-    const baseDoc: BusinessDocument = {
-      id: initialDocument?.id || "",
-      docType: defaultType,
-      isGstBill: defaultIsGst,
-      docSubtitle: initialDocument?.docSubtitle || (defaultIsGst ? "OFFICIAL GST TAX INVOICE" : "OFFICIAL BILL OF SUPPLY - NON-GST"),
-      docNumber: refNum,
-      date: initialDocument?.date || new Date().toISOString().split("T")[0],
-      dueDate: initialDocument?.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
-      refNo: initialDocument?.refNo || refNum,
-      piReference: initialDocument?.piReference || "",
-      placeOfSupply: initialDocument?.placeOfSupply || "Kerala (State Code: 32)",
-      leadId: initialDocument?.leadId,
-      leadNumber: initialDocument?.leadNumber,
-      recipientName: initialDocument?.recipientName || "",
-      recipientOrg: initialDocument?.recipientOrg || "",
-      recipientAddress: initialDocument?.recipientAddress || "",
-      recipientGstin: initialDocument?.recipientGstin || "",
-      subject: initialDocument?.subject || (defaultType === "QUOTATION" ? "SUBJECT: Commercial Proposal & Quote for Robotics Setup" : "SUBJECT: Final Tax Invoice"),
-      bodyText: initialDocument?.bodyText || (defaultType === "QUOTATION" ? "Thank you for your interest in Robuverse. LLP. Please find below our official commercial quotation for your review." : "Official GST Tax Invoice for equipment deployment and technical services rendered."),
-      items: initialItems,
-      tableMode: "tax_invoice",
-      qtyColumnLabel: "DAYS",
-      gstMode: "calculated",
-      gstType: "intrastate",
-      taxRate: initialTaxRate,
-      customSubtotal: initialCustomSubtotal,
-      ...initialTotals,
-      paymentTerms: initialDocument?.paymentTerms || ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch",
-      validityNotes: initialDocument?.validityNotes || (defaultIsGst
-        ? ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)"
-        : ". Official Non-GST Bill of Supply / Cash Memo."),
-      signatoryName: settings.signatories[0]?.name || "Mithlaj MT.",
-      signatoryTitle: settings.signatories[0]?.title || "Co-Founder & CTO",
-      showSeal: true,
-      showSignature: true,
-      showWatermark: true,
-      showRecipientSection: true,
-      showCompanyGst: defaultIsGst,
-      showBankDetails: initialDocument?.showBankDetails !== undefined ? initialDocument.showBankDetails : (defaultType !== "QUOTATION"),
-      bankAccountId: settings.bankAccounts[0]?.id || "bank_federal_nihal",
-      status: "ISSUED",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    return baseDoc;
-  });
+  useEffect(() => {
+    if (initialDocument) {
+      setDoc(buildInitialDoc(initialDocument, settings));
+    }
+  }, [initialDocument, settings]);
 
   useEffect(() => {
     setClients(DocumentStorageService.getClients());
@@ -152,21 +187,41 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
     };
 
     const subjectMap: Record<DocType, string> = {
-      QUOTATION: "SUBJECT: Commercial Proposal & Quote for Robotics Setup",
-      PROFORMA: "SUBJECT: Proforma Invoice for 50% Advance Booking Deposit",
-      TAX_INVOICE: "SUBJECT: Final Tax Invoice for Unitree G1 Robotics Showcase & Demonstration (3-Day Expo)",
-      NON_GST_INVOICE: "SUBJECT: Bill of Supply / Non-GST Invoice for Robotics Equipment & Services",
-      LETTERHEAD: "SUBJECT: Official Company Notice & Announcement",
-      CERTIFICATE: "SUBJECT: Certificate of Completion",
+      QUOTATION: "Commercial Proposal & Quote for Robotics Setup",
+      PROFORMA: "Proforma Invoice for 50% Advance Booking Deposit",
+      TAX_INVOICE: "Final Tax Invoice for Unitree G1 Robotics Showcase & Demonstration",
+      NON_GST_INVOICE: "Bill of Supply / Non-GST Invoice for Robotics Equipment & Services",
+      LETTERHEAD: "Official Company Notice & Announcement",
+      CERTIFICATE: "Certificate of Completion",
     };
 
     const defaultBodyMap: Record<DocType, string> = {
       QUOTATION: "We are pleased to submit our official commercial quotation for your review.",
       PROFORMA: "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation.",
-      TAX_INVOICE: "Official GST Tax Invoice for deployment, live showcase, and technical operation of Unitree G1 robotics systems for 3-day expo/event. Issued against Proforma Invoice Ref: RBV/PI/2026/170 (50% Advance) & Ref: RBV/PI/2026/170-B (50% Balance).",
+      TAX_INVOICE: "Official GST Tax Invoice for deployment, live showcase, and technical operation of Unitree G1 robotics systems. Issued against confirmed purchase order.",
       NON_GST_INVOICE: "Official non-tax bill of supply for equipment deployment and technical services rendered.",
       LETTERHEAD: "Please find below our official company announcement and technical notice.",
       CERTIFICATE: "This is to certify the completion of practical training and workshop requirements.",
+    };
+
+    const paymentTermsMap: Record<DocType, string> = {
+      QUOTATION: ". 50% advance on confirmation of purchase order\n. 50% upon delivery, installation & final commissioning",
+      PROFORMA: ". 50% advance booking deposit payable upon confirmation\n. 50% balance before dispatch & deployment",
+      TAX_INVOICE: ". Full settlement as per contract agreement terms",
+      NON_GST_INVOICE: ". Full settlement upon receipt / delivery",
+      LETTERHEAD: "",
+      CERTIFICATE: "",
+    };
+
+    const validityNotesMap: Record<DocType, string> = {
+      QUOTATION: ". Quote Validity: 30 days from date of issue.\n. Delivery & Deployment: Within 7 to 10 working days upon order confirmation.\n. Taxes & Statutory: GST @ 18% extra as applicable.\n. Warranty & Technical Support: 1 Year comprehensive technical coverage included.",
+      PROFORMA: ". Proforma Invoice issued against confirmed booking order.\n. Advance payment locks in equipment reservation & engineer scheduling.\n. Statutory Tax Invoice will be issued upon delivery/service execution.",
+      TAX_INVOICE: isGst
+        ? ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Supplier GSTIN: 32ABOFR0193C1ZE\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)\n. SAC Code: 997319 (Renting/leasing of robots and other machinery/equipment)"
+        : ". Official Non-GST Bill of Supply / Cash Memo.\n. Includes dedicated robotics engineers, on-site setup, and live demonstrations.",
+      NON_GST_INVOICE: ". Official Non-GST Bill of Supply / Cash Memo.\n. Includes dedicated robotics engineers, on-site setup, and live demonstrations.",
+      LETTERHEAD: "",
+      CERTIFICATE: "",
     };
 
     setDoc((prev) => ({
@@ -176,6 +231,8 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
       docSubtitle: subtitleMap[type] || prev.docSubtitle,
       subject: subjectMap[type] || prev.subject,
       bodyText: defaultBodyMap[type] || prev.bodyText,
+      paymentTerms: paymentTermsMap[type] !== undefined ? paymentTermsMap[type] : prev.paymentTerms,
+      validityNotes: validityNotesMap[type] !== undefined ? validityNotesMap[type] : prev.validityNotes,
       docNumber: newRef,
       refNo: newRef,
       piReference: type === "QUOTATION" || type === "NON_GST_INVOICE" ? "" : prev.piReference,
@@ -703,33 +760,122 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
               <label className="block text-slate-700 font-bold">
                 ✍️ Opening Note / Preamble Paragraph (Fully Editable)
               </label>
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDoc((prev) => ({
-                      ...prev,
-                      bodyText:
-                        "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.",
-                    }))
-                  }
-                  className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg font-bold border border-indigo-200 transition cursor-pointer"
-                >
-                  Proforma 50% Advance
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDoc((prev) => ({
-                      ...prev,
-                      bodyText:
-                        "Thank you for your interest in Robuverse. LLP. Please find below our official commercial quotation for your review.",
-                    }))
-                  }
-                  className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-lg font-bold border border-slate-200 transition cursor-pointer"
-                >
-                  Quotation Intro
-                </button>
+              <div className="flex gap-1.5 flex-wrap">
+                {doc.docType === "QUOTATION" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDoc((prev) => ({
+                          ...prev,
+                          bodyText:
+                            "We are pleased to submit our official commercial quotation for your review.",
+                        }))
+                      }
+                      className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                        doc.bodyText === "We are pleased to submit our official commercial quotation for your review."
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      Quotation Intro
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDoc((prev) => ({
+                          ...prev,
+                          bodyText:
+                            "Thank you for your interest in Robuverse. LLP. Please find below our official commercial proposal and quotation for your review and approval.",
+                        }))
+                      }
+                      className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                        doc.bodyText?.includes("commercial proposal and quotation")
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      Proposal & Quote
+                    </button>
+                  </>
+                )}
+
+                {doc.docType === "PROFORMA" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDoc((prev) => ({
+                          ...prev,
+                          bodyText:
+                            "Thank you for confirming your booking. Please find below our Proforma Invoice towards the 50% advance payment required upon booking confirmation to schedule equipment deployment and technical staff.",
+                        }))
+                      }
+                      className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                        doc.bodyText?.includes("50% advance payment")
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      Proforma 50% Advance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDoc((prev) => ({
+                          ...prev,
+                          bodyText:
+                            "Please find below our Proforma Invoice towards the remaining 50% balance payment prior to dispatch and equipment deployment.",
+                        }))
+                      }
+                      className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                        doc.bodyText?.includes("balance payment")
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      Proforma 50% Balance
+                    </button>
+                  </>
+                )}
+
+                {doc.docType === "TAX_INVOICE" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDoc((prev) => ({
+                          ...prev,
+                          bodyText:
+                            "Official GST Tax Invoice for equipment deployment, live showcase, and technical operation rendered.",
+                        }))
+                      }
+                      className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                        doc.bodyText?.includes("Official GST Tax Invoice")
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      Tax Invoice Standard
+                    </button>
+                  </>
+                )}
+
+                {doc.docType === "NON_GST_INVOICE" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDoc((prev) => ({
+                        ...prev,
+                        bodyText:
+                          "Official non-tax bill of supply for equipment deployment and technical services rendered.",
+                      }))
+                    }
+                    className="text-[10px] bg-indigo-600 text-white border-indigo-600 px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer"
+                  >
+                    Bill of Supply Intro
+                  </button>
+                )}
               </div>
             </div>
             <textarea
@@ -820,16 +966,45 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             </div>
           </div>
 
-          <div className="text-xs">
-            <label className="block text-slate-500 mb-1 font-bold">Billing Address & Pincode *</label>
-            <textarea
-              rows={3}
-              required
-              placeholder="Building No, Street, City, State, Pincode"
-              value={doc.recipientAddress}
-              onChange={(e) => setDoc({ ...doc, recipientAddress: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="block text-slate-500 mb-1 font-bold">Billing Address & Pincode *</label>
+              <textarea
+                rows={3}
+                required
+                placeholder="Building No, Street, City, State, Pincode"
+                value={doc.recipientAddress}
+                onChange={(e) => setDoc({ ...doc, recipientAddress: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-slate-500 mb-1 font-bold">Place of Supply</label>
+                <input
+                  type="text"
+                  placeholder="Kerala (State Code: 32)"
+                  value={doc.placeOfSupply || ""}
+                  onChange={(e) => setDoc({ ...doc, placeOfSupply: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-slate-800 text-[11px]">Recipient Block Visibility</div>
+                  <div className="text-[10px] text-slate-400">Show TO: Client Box on Document</div>
+                </div>
+                <label className="flex items-center space-x-1.5 cursor-pointer bg-white border border-slate-200 px-2.5 py-1 rounded-lg">
+                  <input
+                    type="checkbox"
+                    checked={doc.showRecipientSection !== false}
+                    onChange={(e) => setDoc({ ...doc, showRecipientSection: e.target.checked })}
+                    className="rounded text-indigo-600 focus:ring-0"
+                  />
+                  <span className="text-[11px] font-bold text-indigo-700">Show TO Box</span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div className="text-xs">
@@ -1011,7 +1186,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
               <label className="block text-slate-700 mb-1.5 font-semibold text-[11px]">
                 ✏️ Edit Column Headings & Titles:
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                 <div>
                   <label className="block text-slate-500 text-[10px]">Item / Scope Heading</label>
                   <input
@@ -1039,6 +1214,16 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                     placeholder="QTY / SCOPE"
                     value={doc.colHeaderQty || doc.qtyColumnLabel || ""}
                     onChange={(e) => setDoc({ ...doc, colHeaderQty: e.target.value, qtyColumnLabel: e.target.value })}
+                    className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-500 text-[10px]">Price / Rate Heading</label>
+                  <input
+                    type="text"
+                    placeholder="RATE (₹)"
+                    value={doc.colHeaderRate || ""}
+                    onChange={(e) => setDoc({ ...doc, colHeaderRate: e.target.value })}
                     className="w-full bg-white border border-slate-200/80 rounded-lg p-2 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
@@ -1079,13 +1264,53 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 <label className="block text-slate-700 mb-1 font-semibold">Table Layout Preset</label>
                 <select
                   value={doc.tableMode}
-                  onChange={(e) => setDoc({ ...doc, tableMode: e.target.value as any })}
+                  onChange={(e) => {
+                    const m = e.target.value as any;
+                    let showSac = doc.showSacCode;
+                    let showQty = doc.showQtyColumn;
+                    let showRate = doc.showRateColumn;
+                    let showRowAmounts = doc.showRowAmounts;
+                    let totalMode = doc.totalDisplayMode;
+                    if (m === "summary") {
+                      showSac = false;
+                      showRate = false;
+                      showQty = true;
+                    } else if (m === "detailed") {
+                      showSac = true;
+                      showQty = true;
+                      showRate = true;
+                      showRowAmounts = true;
+                    } else if (m === "tax_invoice") {
+                      showSac = true;
+                      showQty = true;
+                      showRate = false;
+                      showRowAmounts = true;
+                    } else if (m === "item_days_amount") {
+                      showSac = false;
+                      showQty = true;
+                      showRate = false;
+                      showRowAmounts = true;
+                    } else if (m === "total_only") {
+                      showRowAmounts = false;
+                      totalMode = "total_only";
+                    }
+                    setDoc({
+                      ...doc,
+                      tableMode: m,
+                      showSacCode: showSac,
+                      showQtyColumn: showQty,
+                      showRateColumn: showRate,
+                      showRowAmounts: showRowAmounts,
+                      totalDisplayMode: totalMode
+                    });
+                  }}
                   className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="summary">Summary Table (Scope & Total)</option>
-                  <option value="detailed">Detailed Itemized Breakdown</option>
                   <option value="tax_invoice">GST Tax Invoice Standard</option>
+                  <option value="detailed">Detailed Itemized Breakdown (With Rate & Amount)</option>
+                  <option value="summary">Summary Table (Scope & Total)</option>
                   <option value="item_days_amount">Item, Units & Amount</option>
+                  <option value="total_only">Total Only (Lump Sum Contract)</option>
                 </select>
               </div>
             </div>
@@ -1099,7 +1324,7 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                   onChange={(e) => setDoc({ ...doc, showSacCode: e.target.checked })}
                   className="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300"
                 />
-                <span className="text-slate-700 font-semibold">Show SAC / HSN Code Column</span>
+                <span className="text-slate-700 font-semibold">Show SAC / HSN Column</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -1110,6 +1335,16 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                   className="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300"
                 />
                 <span className="text-slate-700 font-semibold">Show Quantity / Scope Column</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={doc.showRateColumn === true}
+                  onChange={(e) => setDoc({ ...doc, showRateColumn: e.target.checked })}
+                  className="w-4 h-4 accent-indigo-600 rounded bg-white border-slate-300"
+                />
+                <span className="text-slate-700 font-semibold">Show Unit Price / Rate Column</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer bg-indigo-50/60 px-2.5 py-1 rounded-lg border border-indigo-200/60">
@@ -1236,27 +1471,39 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
               </select>
             </div>
 
-            <div>
-              <label className="block text-slate-700 mb-1 font-semibold">Authorized Signatory</label>
-              <select
-                value={doc.signatoryName}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  const sig = settings.signatories.find((s) => s.name === name);
-                  setDoc({
-                    ...doc,
-                    signatoryName: name,
-                    signatoryTitle: sig?.title || doc.signatoryTitle,
-                  });
-                }}
-                className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
-              >
-                {settings.signatories.map((s) => (
-                  <option key={s.id} value={s.name}>
-                    {s.name} ({s.title})
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-slate-700 mb-1 font-semibold">Authorized Signatory</label>
+                <select
+                  value={doc.signatoryName}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const sig = settings.signatories.find((s) => s.name === name);
+                    setDoc({
+                      ...doc,
+                      signatoryName: name,
+                      signatoryTitle: sig?.title || doc.signatoryTitle,
+                    });
+                  }}
+                  className="w-full bg-white border border-slate-200/80 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:border-indigo-500"
+                >
+                  {settings.signatories.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name} ({s.title})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-slate-500 text-[10px] font-bold">Signatory Title / Designation</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Co-Founder & CTO"
+                  value={doc.signatoryTitle || ""}
+                  onChange={(e) => setDoc({ ...doc, signatoryTitle: e.target.value })}
+                  className="w-full bg-white border border-slate-200/80 rounded-lg p-1.5 text-slate-900 font-medium text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -1301,31 +1548,91 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 <label className="block text-slate-700 font-bold">
                   📋 Payment Terms (Renders in Left Box when Bank Details are Hidden or combined)
                 </label>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDoc((prev) => ({
-                        ...prev,
-                        paymentTerms: ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch",
-                      }))
-                    }
-                    className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg font-bold border border-indigo-200 cursor-pointer"
-                  >
-                    ⚡ 50/30/20 Stage Payment
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDoc((prev) => ({
-                        ...prev,
-                        paymentTerms: ". 50% advance booking deposit upon confirmation\n. 50% balance before dispatch & deployment",
-                      }))
-                    }
-                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-lg font-bold border border-slate-200 cursor-pointer"
-                  >
-                    ⚡ 50/50 Advance
-                  </button>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center space-x-1.5 cursor-pointer bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-lg text-[10px]">
+                    <input
+                      type="checkbox"
+                      checked={doc.showTerms !== false}
+                      onChange={(e) => setDoc({ ...doc, showTerms: e.target.checked })}
+                      className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 text-xs"
+                    />
+                    <span className={doc.showTerms !== false ? "text-indigo-700 font-bold" : "text-slate-500"}>
+                      {doc.showTerms !== false ? "Show Box" : "Hide"}
+                    </span>
+                  </label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {doc.docType === "QUOTATION" ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDoc((prev) => ({
+                              ...prev,
+                              paymentTerms: ". 50% advance on confirmation of purchase order\n. 50% upon delivery, installation & final commissioning",
+                            }))
+                          }
+                          className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                            doc.paymentTerms?.includes("purchase order")
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          ⚡ 50/50 Quote Terms
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDoc((prev) => ({
+                              ...prev,
+                              paymentTerms: ". 100% payment upon delivery, installation & satisfactory testing",
+                            }))
+                          }
+                          className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                            doc.paymentTerms?.includes("100% payment upon delivery")
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          ⚡ 100% On Delivery
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDoc((prev) => ({
+                              ...prev,
+                              paymentTerms: ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch",
+                            }))
+                          }
+                          className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                            doc.paymentTerms?.includes("50% advance on confirmation of order")
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          ⚡ 50/30/20 Stage Payment
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDoc((prev) => ({
+                              ...prev,
+                              paymentTerms: ". 50% advance booking deposit upon confirmation\n. 50% balance before dispatch & deployment",
+                            }))
+                          }
+                          className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                            doc.paymentTerms?.includes("advance booking deposit")
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          ⚡ 50/50 Advance
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <textarea
@@ -1338,7 +1645,59 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
             </div>
 
             <div>
-              <label className="block text-slate-700 mb-1 font-bold">Validity & Notes (Renders in Right Box on PDF)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-slate-700 font-bold">Validity & Notes (Renders in Right Box on PDF)</label>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center space-x-1.5 cursor-pointer bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-lg text-[10px]">
+                    <input
+                      type="checkbox"
+                      checked={doc.showValidity !== false}
+                      onChange={(e) => setDoc({ ...doc, showValidity: e.target.checked })}
+                      className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0 text-xs"
+                    />
+                    <span className={doc.showValidity !== false ? "text-indigo-700 font-bold" : "text-slate-500"}>
+                      {doc.showValidity !== false ? "Show Box" : "Hide"}
+                    </span>
+                  </label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {doc.docType === "QUOTATION" ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDoc((prev) => ({
+                            ...prev,
+                            validityNotes: ". Quote Validity: 30 days from date of issue.\n. Delivery & Deployment: Within 7 to 10 working days upon order confirmation.\n. Taxes & Statutory: GST @ 18% extra as applicable.\n. Warranty & Technical Support: 1 Year comprehensive technical coverage included.",
+                          }))
+                        }
+                        className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                          doc.validityNotes?.includes("Quote Validity: 30 days")
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                        }`}
+                      >
+                        ⚡ 30-Day Quote Terms
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDoc((prev) => ({
+                            ...prev,
+                            validityNotes: ". Official Statutory Tax Invoice under Section 31 of CGST Act 2017 & Rule 46 of CGST Rules.\n. Supplier GSTIN: 32ABOFR0193C1ZE\n. Place of Supply: Kerala (State Code: 32) | Intra-state Supply (CGST 9% + SGST 9%)\n. SAC Code: 997319 (Renting/leasing of robots and other machinery/equipment)",
+                          }))
+                        }
+                        className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition cursor-pointer ${
+                          doc.validityNotes?.includes("Section 31 of CGST Act")
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                        }`}
+                      >
+                        ⚡ Statutory GST Notes
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
               <textarea
                 rows={4}
                 value={doc.validityNotes || ""}
@@ -1378,6 +1737,16 @@ export default function DocumentForm({ initialDocument, settings, onSaveSuccess,
                 className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
               />
               <span className="text-slate-700 font-medium">Show Robuverse Watermark</span>
+            </label>
+
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={doc.showFooter !== false}
+                onChange={(e) => setDoc({ ...doc, showFooter: e.target.checked })}
+                className="rounded bg-white border-slate-300 text-indigo-600 focus:ring-0"
+              />
+              <span className="text-slate-700 font-medium">Show Bottom Footer</span>
             </label>
           </div>
 

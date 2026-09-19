@@ -18,6 +18,8 @@ function sanitizeDocument(doc: any): BusinessDocument {
   const parsed = JSON.parse(JSON.stringify(doc));
   return {
     ...parsed,
+    date: parsed.date ? new Date(parsed.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    dueDate: parsed.dueDate ? new Date(parsed.dueDate).toISOString().split("T")[0] : undefined,
     taxRate: Number(parsed.taxRate || 0),
     subtotal: Number(parsed.subtotal || 0),
     discountTotal: Number(parsed.discountTotal || 0),
@@ -31,6 +33,32 @@ function sanitizeDocument(doc: any): BusinessDocument {
     customSubtotal: parsed.customSubtotal !== undefined && parsed.customSubtotal !== null ? Number(parsed.customSubtotal) : undefined,
     advancePercent: parsed.advancePercent !== undefined && parsed.advancePercent !== null ? Number(parsed.advancePercent) : undefined,
     totalContractValue: parsed.totalContractValue !== undefined && parsed.totalContractValue !== null ? Number(parsed.totalContractValue) : undefined,
+    tableMode: parsed.tableMode || "tax_invoice",
+    qtyColumnLabel: parsed.qtyColumnLabel || undefined,
+    colHeaderItem: parsed.colHeaderItem || undefined,
+    colHeaderSac: parsed.colHeaderSac || undefined,
+    colHeaderQty: parsed.colHeaderQty || undefined,
+    colHeaderRate: parsed.colHeaderRate || undefined,
+    colHeaderAmount: parsed.colHeaderAmount || undefined,
+    showSacCode: parsed.showSacCode !== false,
+    showQtyColumn: parsed.showQtyColumn !== false,
+    showRateColumn: parsed.showRateColumn !== false,
+    showRowAmounts: parsed.showRowAmounts !== false,
+    totalDisplayMode: parsed.totalDisplayMode || "full_breakdown",
+    showGstDetails: parsed.showGstDetails || (parsed.isGstBill ? "show" : "hide"),
+    showSeal: parsed.showSeal !== false,
+    showSignature: parsed.showSignature !== false,
+    showWatermark: parsed.showWatermark !== false,
+    showRecipientSection: parsed.showRecipientSection !== false,
+    showCompanyGst: parsed.showCompanyGst !== false,
+    showBankDetails: parsed.showBankDetails !== false,
+    showBankTransferNote: parsed.showBankTransferNote !== false,
+    showTerms: parsed.showTerms !== false,
+    showValidity: parsed.showValidity !== false,
+    showFooter: parsed.showFooter !== false,
+    bankAccountId: parsed.bankAccountId || "bank_federal_nihal",
+    bankAccountNote: parsed.bankAccountNote || undefined,
+    metadata: parsed.metadata || undefined,
     items: (parsed.items || []).map((item: any) => ({
       ...item,
       qty: Number(item.qty || 1),
@@ -48,10 +76,7 @@ export async function getNextDocNumberAction(docType: DocType, isGstBill: boolea
   let prefix = "RBV/INV";
   let minSeq = 201;
 
-  if (!isGstBill || docType === "NON_GST_INVOICE") {
-    prefix = "RBV/BILL";
-    minSeq = 101;
-  } else if (docType === "QUOTATION") {
+  if (docType === "QUOTATION") {
     prefix = "RBV/QTN";
     minSeq = 101;
   } else if (docType === "PROFORMA") {
@@ -62,6 +87,9 @@ export async function getNextDocNumberAction(docType: DocType, isGstBill: boolea
     minSeq = 101;
   } else if (docType === "CERTIFICATE") {
     prefix = "RBV/CERT";
+    minSeq = 101;
+  } else if (!isGstBill || docType === "NON_GST_INVOICE") {
+    prefix = "RBV/BILL";
     minSeq = 101;
   }
 
@@ -118,6 +146,26 @@ export async function saveDocumentAction(doc: BusinessDocument) {
     subject: doc.subject || null,
     bodyText: doc.bodyText || null,
 
+    // Table Schema & Column Customizations
+    tableMode: doc.tableMode || "tax_invoice",
+    qtyColumnLabel: doc.qtyColumnLabel || doc.colHeaderQty || null,
+    colHeaderItem: doc.colHeaderItem || null,
+    colHeaderSac: doc.colHeaderSac || null,
+    colHeaderQty: doc.colHeaderQty || null,
+    colHeaderRate: doc.colHeaderRate || null,
+    colHeaderAmount: doc.colHeaderAmount || null,
+    showSacCode: doc.showSacCode !== false,
+    showQtyColumn: doc.showQtyColumn !== false,
+    showRateColumn: doc.showRateColumn !== false,
+    showRowAmounts: doc.showRowAmounts !== false,
+
+    // Total & Tax Display Modes
+    totalDisplayMode: doc.totalDisplayMode || "full_breakdown",
+    showGstDetails: doc.showGstDetails || (isGst ? "show" : "hide"),
+    customSubtotal: doc.customSubtotal !== undefined && doc.customSubtotal !== null ? Number(doc.customSubtotal) : null,
+    advancePercent: doc.advancePercent !== undefined && doc.advancePercent !== null ? Number(doc.advancePercent) : null,
+    totalContractValue: doc.totalContractValue !== undefined && doc.totalContractValue !== null ? Number(doc.totalContractValue) : null,
+
     gstMode: doc.gstMode || "calculated",
     gstType: doc.gstType || "intrastate",
     taxRate: doc.taxRate || (isGst ? 18 : 0),
@@ -138,14 +186,20 @@ export async function saveDocumentAction(doc: BusinessDocument) {
     signatoryName: doc.signatoryName || "Mithlaj MT.",
     signatoryTitle: doc.signatoryTitle || "Co-Founder & CTO",
     bankAccountId: doc.bankAccountId || "bank_federal_nihal",
+    bankAccountNote: doc.bankAccountNote || null,
 
     showSeal: doc.showSeal !== false,
     showSignature: doc.showSignature !== false,
     showWatermark: doc.showWatermark !== false,
     showRecipientSection: doc.showRecipientSection !== false,
     showCompanyGst: doc.showCompanyGst !== false,
+    showBankDetails: doc.showBankDetails !== false,
     showBankTransferNote: doc.showBankTransferNote !== false,
+    showTerms: doc.showTerms !== false,
+    showValidity: doc.showValidity !== false,
+    showFooter: doc.showFooter !== false,
 
+    metadata: doc.metadata || null,
     status: doc.status || "ISSUED"
   };
 
@@ -211,7 +265,9 @@ export async function saveDocumentAction(doc: BusinessDocument) {
     }
   }
 
-  revalidatePath("/documents");
+  try {
+    revalidatePath("/documents");
+  } catch (_) {}
   return { success: true, document: sanitizeDocument(savedDoc) };
 }
 
@@ -236,6 +292,35 @@ export async function getDocumentByIdAction(id: string) {
 export async function deleteDocumentAction(id: string) {
   const prisma = getDocPrisma();
   await prisma.document.delete({ where: { id } });
-  revalidatePath("/documents");
+  try {
+    revalidatePath("/documents");
+  } catch (_) {}
   return { success: true };
 }
+
+export async function duplicateDocumentAction(id: string) {
+  const prisma = getDocPrisma();
+  const original = await prisma.document.findUnique({
+    where: { id },
+    include: { items: true }
+  });
+  if (!original) throw new Error("Document not found to duplicate");
+
+  const newDocNumber = await getNextDocNumberAction(original.docType, original.isGstBill);
+  const originalSanitized = sanitizeDocument(original);
+
+  const duplicated: BusinessDocument = {
+    ...originalSanitized,
+    id: "",
+    docNumber: newDocNumber,
+    refNo: newDocNumber,
+    date: new Date().toISOString().split("T")[0],
+    dueDate: originalSanitized.dueDate ? new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0] : undefined,
+    status: "DRAFT",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  return await saveDocumentAction(duplicated);
+}
+

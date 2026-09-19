@@ -198,13 +198,13 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                       <span className="font-semibold uppercase tracking-wider text-slate-400">Due Date:</span> {doc.dueDate}
                     </div>
                   )}
-                  {doc.isGstBill !== false && doc.showCompanyGst !== false && (
+                  {doc.showCompanyGst !== false && (
                     <div className="font-mono">
                       <span className="font-semibold uppercase tracking-wider text-slate-400">GSTIN:</span>{" "}
                       <span className="font-bold text-slate-800">{settings.gstin || "32ABOFR0193C1ZE"}</span>
                     </div>
                   )}
-                  {doc.isGstBill !== false && doc.placeOfSupply && (
+                  {doc.placeOfSupply && (
                     <div className="font-mono">
                       <span className="font-semibold uppercase tracking-wider text-slate-400">PLACE OF SUPPLY:</span>{" "}
                       <span className="font-bold text-slate-800">{doc.placeOfSupply}</span>
@@ -220,7 +220,13 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
 
                 <div className="text-right">
                   <h2 className="font-cinzel text-[13px] font-extrabold tracking-widest text-indigo-950 border-b-2 border-indigo-950/20 pb-0.5 inline-block uppercase leading-tight">
-                    {doc.isGstBill === false || doc.docType === "NON_GST_INVOICE" ? "BILL OF SUPPLY" : doc.docType.replace("_", " ")}
+                    {doc.docType === "QUOTATION"
+                      ? "QUOTATION"
+                      : doc.docType === "PROFORMA"
+                      ? "PROFORMA INVOICE"
+                      : doc.docType === "NON_GST_INVOICE" || (!doc.isGstBill && doc.docType === "TAX_INVOICE")
+                      ? "BILL OF SUPPLY"
+                      : doc.docType.replace("_", " ")}
                   </h2>
                   {doc.docSubtitle && (
                     <div className="text-[8px] font-bold text-indigo-900 max-w-[85mm] mt-1 font-sans leading-relaxed uppercase tracking-wider">
@@ -251,7 +257,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                         {doc.recipientAddress}
                       </div>
                     )}
-                    {doc.isGstBill !== false && doc.recipientGstin && (
+                    {doc.recipientGstin && (
                       <div className="font-mono text-[10px] font-bold text-slate-800">
                         GSTIN: {doc.recipientGstin}
                       </div>
@@ -265,7 +271,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                 <section className="mb-3">
                   <h3 className="text-[10.5px] font-bold text-indigo-950 leading-relaxed flex gap-1.5">
                     <span className="underline decoration-slate-300 font-extrabold">SUBJECT:</span>
-                    <span>{doc.subject}</span>
+                    <span>{doc.subject.replace(/^SUBJECT:\s*/i, "")}</span>
                   </h3>
                 </section>
               )}
@@ -281,11 +287,13 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
               {(() => {
                 const showSac = doc.showSacCode !== false;
                 const showQty = doc.showQtyColumn !== false;
+                const showRate = doc.showRateColumn === true;
                 const displayMode = doc.totalDisplayMode || (doc.showGstDetails === "hide" ? "total_only" : "full_breakdown");
 
                 let colCount = 2; // # and Description
                 if (showSac) colCount++;
                 if (showQty) colCount++;
+                if (showRate) colCount++;
                 const emptyColSpan = colCount - 1;
 
                 return (
@@ -294,10 +302,11 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-indigo-950 text-white text-[9.5px] font-semibold uppercase tracking-wider leading-snug">
-                            <th className="py-2.5 px-3 w-[7%] text-center">#</th>
+                            <th className="py-2.5 px-3 w-[6%] text-center">#</th>
                             <th className="py-2.5 px-3">{doc.colHeaderItem || "ITEM & DESCRIPTION"}</th>
                             {showSac && <th className="py-2.5 px-3 w-[12%] text-center">{doc.colHeaderSac || "SAC CODE"}</th>}
-                            {showQty && <th className="py-2.5 px-3 w-[13%] text-center">{doc.colHeaderQty || doc.qtyColumnLabel || "QTY"}</th>}
+                            {showQty && <th className="py-2.5 px-3 w-[12%] text-center">{doc.colHeaderQty || doc.qtyColumnLabel || "QTY"}</th>}
+                            {showRate && <th className="py-2.5 px-3 w-[14%] text-right font-mono">{doc.colHeaderRate || "RATE (₹)"}</th>}
                             <th className="py-2.5 px-3 w-[16%] text-right font-mono">{doc.colHeaderAmount || "AMOUNT"}</th>
                           </tr>
                         </thead>
@@ -318,6 +327,11 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                                     if (item.qty > 1 && u.toLowerCase() === "day") return `${item.qty} Days`;
                                     return `${item.qty} ${u}`;
                                   })()}
+                                </td>
+                              )}
+                              {showRate && (
+                                <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                                  ₹ {Number(item.price || 0).toLocaleString("en-IN")}
                                 </td>
                               )}
                               <td className="py-2.5 px-3 text-right font-semibold font-mono text-slate-800">
@@ -534,18 +548,20 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                       )}
                     </div>
                   </div>
-                ) : (
+                ) : doc.showTerms !== false ? (
                   <div className="bg-slate-50/40 p-2.5 rounded-lg border border-slate-200">
                     <h4 className="font-bold text-indigo-950 uppercase text-[8.5px] tracking-wider mb-1.5 border-b border-indigo-950/10 pb-1">
                       Payment Terms
                     </h4>
                     <p className="whitespace-pre-line leading-relaxed text-[8.5px] text-slate-700 font-medium">
-                      {doc.paymentTerms || ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch"}
+                      {doc.paymentTerms || (doc.docType === "QUOTATION"
+                        ? ". 50% advance on confirmation of purchase order\n. 50% upon delivery, installation & commissioning"
+                        : ". 50% advance on confirmation of order\n. 30% on equipment delivery & installation\n. 20% on handover & launch")}
                     </p>
                   </div>
-                )}
+                ) : null}
 
-                {doc.validityNotes && (
+                {doc.showValidity !== false && doc.validityNotes && (
                   <div className="bg-slate-50/40 p-2.5 rounded-lg border border-slate-200">
                     <h4 className="font-bold text-indigo-950 uppercase text-[8.5px] tracking-wider mb-1.5 border-b border-indigo-950/10 pb-1">
                       Validity & Notes
@@ -590,7 +606,7 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
                   </div>
                   <div className="w-[45mm] h-[1px] bg-slate-200 mx-auto my-1.5"></div>
                   <div className="text-[9px] font-semibold text-slate-400 tracking-wide uppercase">
-                    Authorized Signatory
+                    {doc.signatoryTitle || "Authorized Signatory"}
                   </div>
                   <div className="text-[9px] font-bold text-indigo-950 mt-0.5">
                     {doc.signatoryName}
@@ -600,26 +616,28 @@ export default function DocumentPreview({ document: doc, settings, scale: initia
             </div>
 
             {/* Bottom Footer Details */}
-            <footer className="relative z-10 border-t border-[#b08f57]/30 pt-3 flex flex-col items-center text-center mt-auto">
-              <div className="text-[8px] text-slate-500 font-medium flex items-center justify-center gap-1.5 leading-relaxed">
-                <span>{settings.companyAddress || "Building No. 5/986/E, Kattangal, Chathamangalam, Kozhikode, Kerala - 673601, India"}</span>
-                <span>•</span>
-                <span>Ph: {settings.companyPhone || "+91 7356284208"}</span>
-                <span>•</span>
-                <span>www.robuverse.com</span>
-                <span>•</span>
-                <span>robuverselab@gmail.com</span>
-              </div>
-              <div className="text-[7.5px] text-slate-500 mt-1 uppercase tracking-widest font-bold flex items-center justify-center gap-2 leading-relaxed">
-                {doc.showCompanyGst !== false && (
-                  <>
-                    <span>GSTIN: {settings.companyGstin || "32ABOFR0193C1ZE"}</span>
-                    <span>•</span>
-                  </>
-                )}
-                <span>LLPIN: ACZ-1342</span>
-              </div>
-            </footer>
+            {doc.showFooter !== false && (
+              <footer className="relative z-10 border-t border-[#b08f57]/30 pt-3 flex flex-col items-center text-center mt-auto">
+                <div className="text-[8px] text-slate-500 font-medium flex items-center justify-center gap-1.5 leading-relaxed">
+                  <span>{settings.companyAddress || "Building No. 5/986/E, Kattangal, Chathamangalam, Kozhikode, Kerala - 673601, India"}</span>
+                  <span>•</span>
+                  <span>Ph: {settings.companyPhone || "+91 7356284208"}</span>
+                  <span>•</span>
+                  <span>www.robuverse.com</span>
+                  <span>•</span>
+                  <span>robuverselab@gmail.com</span>
+                </div>
+                <div className="text-[7.5px] text-slate-500 mt-1 uppercase tracking-widest font-bold flex items-center justify-center gap-2 leading-relaxed">
+                  {doc.showCompanyGst !== false && (
+                    <>
+                      <span>GSTIN: {settings.companyGstin || "32ABOFR0193C1ZE"}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span>LLPIN: ACZ-1342</span>
+                </div>
+              </footer>
+            )}
           </div>
         </div>
       </div>
